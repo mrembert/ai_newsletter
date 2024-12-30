@@ -20,7 +20,7 @@ jobs:
           use-public-rspm: true
 
       - name: Install R dependencies
-        run: Rscript -e 'install.packages(c("httr2", "blastula", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili"))'
+        run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili"))'
         Rscript -e 'update.packages(ask=FALSE, checkBuilt=TRUE)'
 
       - name: Cache GUIDs
