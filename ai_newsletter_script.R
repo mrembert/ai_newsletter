@@ -306,20 +306,28 @@ for (section_name in sections_data$Section.Name) {
 newsletter_body <- paste0("# ", dateline, "\n\n", final_newsletter_content)
 
 
+# --- Newsletter Generation ---
+newsletter_body_md <- paste0("# ", dateline, "\n\n", final_newsletter_content) # Markdown body
+newsletter_body_html <- markdown::renderMarkdown(text = newsletter_body_md) # Convert to HTML
+
 # --- Email Sending with emayili ---
 if (nchar(final_newsletter_content) > 0) {
   tryCatch({
     # Create the email message
-    email <- emayili::envelope(
+    email <- envelope(
       to = email_to,
       from = email_from,
       subject = email_subject
     ) %>%
-      emayili::html(markdown::renderMarkdown(text = newsletter_body))
+      html(newsletter_body_html) # Use the pre-converted HTML
     
     # Define SMTP credentials and server
-    server <- gmail(username = email_from, password = email_password)
-    
+    server <- server(host = "smtp.gmail.com", 
+                     port = 465, 
+                     username = email_from,
+                     password = email_password, 
+                     tls = FALSE, 
+                     ssl = TRUE)
     
     # Send the email
     email %>% server()
