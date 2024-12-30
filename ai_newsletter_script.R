@@ -18,8 +18,26 @@ gemini_api_url <- "https://generativelanguage.googleapis.com/v1beta/models/gemin
 
 # Date for newsletter and subject
 current_date <- today()
-dateline <- paste0("Morning Newsletter - ", current_date)
-email_subject <- paste0("Daily Newsletter - ", current_date)
+
+# Format the date as "December 30, 2024"
+formatted_date <- format(current_date, "%B %d, %Y")
+
+# Get the current time
+current_time <- Sys.time()
+current_hour <- as.numeric(format(current_time, "%H"))
+
+# Determine the dateline based on the time of day
+if (current_hour < 12) {
+  dateline <- paste0("Good morning on ", formatted_date)
+  email_subject <- paste0("Morning Update - ", formatted_date)
+} else if (current_hour >= 12 && current_hour < 17) {
+  dateline <- paste0("Good afternoon on ", formatted_date)
+  email_subject <- paste0("Afternoon Update - ", formatted_date)
+} else {
+  dateline <- paste0("Good evening on ", formatted_date)
+  email_subject <- paste0("Evening Update - ", formatted_date)
+}
+
 
 # System Prompt for Newsletter Consistency (updated for headlines)
 system_prompt <- "You are a helpful assistant curating and summarizing daily news for a newsletter. The newsletter has sections, each concise, informative, and engaging. Maintain consistent tone and style. Format with clear headings, use markdown, avoid jargon, and explain complex topics accessibly. If a section has no new items, state no updates. You will also create a headline section summarizing the top stories across all sections at the beginning of the newsletter."
