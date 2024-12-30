@@ -338,12 +338,13 @@ newsletter_body_html <- markdown::renderMarkdown(text = newsletter_body_md) # Co
 if (nchar(final_newsletter_content) > 0) {
   tryCatch({
     # Create the email message
-    email <- envelope(
+    email <- emayili::envelope(
       to = email_to,
       from = email_from,
       subject = email_subject
     ) %>%
-      html(newsletter_body_html) # Use the pre-converted HTML
+      html(newsletter_body_html,
+           charset = "UTF-8") # Use the pre-converted HTML
     
     # Define SMTP credentials and server
     server <- gmail(username = email_from,
