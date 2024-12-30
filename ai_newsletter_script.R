@@ -5,6 +5,7 @@ if(!require(digest)){install.packages("digest")}
 if(!require(lubridate)){install.packages("lubridate")}
 if(!require(feedeR)){install.packages("tidyRSS")}
 if(!require(googlesheets4)){install.packages("googlesheets4")}
+if(!require(emayili)){install.packages("emayili")}
 
 # --- Configuration ---
 
@@ -305,36 +306,64 @@ for (section_name in sections_data$Section.Name) {
 newsletter_body <- paste0("# ", dateline, "\n\n", final_newsletter_content)
 
 
-# --- Email Sending ---
-if (nchar(final_newsletter_content) > 0) { # check if there is actual content to send.
+# # --- Email Sending ---
+# if (nchar(final_newsletter_content) > 0) { # check if there is actual content to send.
+#   tryCatch({
+#     # Create the email message
+#     # email <- blastula::compose_email(
+#     #   body = blastula::md(newsletter_body)
+#     # )
+#     
+#     email <- compose_email(
+#       body = newsletter_body)
+#     
+#     # Create a credentials object
+#     credentials <- blastula::creds_envvar(
+#       user = email_from,
+#       pass_envvar = "EMAIL_PASSWORD",
+#       host = "smtp.gmail.com",
+#       port = 465,
+#       use_ssl = TRUE
+#     )
+#     
+#     
+#     # Send the email using smtp_send with credentials
+#     blastula::smtp_send(
+#       email,
+#       to = email_to,
+#       from = email_from,
+#       subject = email_subject,
+#       credentials = credentials, # Pass in the credentials object
+#       verbose = TRUE  # Include for debugging
+#     )
+#     
+#     message("Newsletter sent successfully!")
+#     
+#   }, error = function(e) {
+#     message(paste("Error sending email:", e$message))
+#   })
+# } else {
+#   message("No content to send in the newsletter.")
+# }
+
+
+# --- Email Sending with emayili ---
+if (nchar(final_newsletter_content) > 0) {
   tryCatch({
     # Create the email message
-    # email <- blastula::compose_email(
-    #   body = blastula::md(newsletter_body)
-    # )
-    
-    email <- compose_email(
-      body = newsletter_body)
-    
-    # Create a credentials object
-    credentials <- blastula::creds_envvar(
-      user = email_from,
-      pass_envvar = "EMAIL_PASSWORD",
-      host = "smtp.gmail.com",
-      port = 465,
-      use_ssl = TRUE
-    )
-    
-    
-    # Send the email using smtp_send with credentials
-    blastula::smtp_send(
-      email,
+    email <- emayili::envelope(
       to = email_to,
       from = email_from,
-      subject = email_subject,
-      credentials = credentials, # Pass in the credentials object
-      verbose = TRUE  # Include for debugging
-    )
+      subject = email_subject
+    ) %>%
+      emayili::html(markdown::renderMarkdown(text = newsletter_body))
+    
+    # Define SMTP credentials and server
+    server <- gmail(username = email_from, password = email_password)
+    
+    
+    # Send the email
+    email %>% server()
     
     message("Newsletter sent successfully!")
     
@@ -344,6 +373,7 @@ if (nchar(final_newsletter_content) > 0) { # check if there is actual content to
 } else {
   message("No content to send in the newsletter.")
 }
+
 # --- Cache Update ---
 # Save cache to file
 write.csv(cache_data, cache_file, row.names = FALSE)
