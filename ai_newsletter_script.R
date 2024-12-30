@@ -309,9 +309,12 @@ newsletter_body <- paste0("# ", dateline, "\n\n", final_newsletter_content)
 if (nchar(final_newsletter_content) > 0) { # check if there is actual content to send.
   tryCatch({
     # Create the email message
-    email <- blastula::compose_email(
-      body = blastula::md(newsletter_body)
-    )
+    # email <- blastula::compose_email(
+    #   body = blastula::md(newsletter_body)
+    # )
+    
+    email <- compose_email(
+      body = newsletter_body)
     
     # Create a credentials object
     credentials <- blastula::creds_envvar(
