@@ -2,7 +2,7 @@
 if(!require(httr2)){install.packages("httr2")}
 if(!require(digest)){install.packages("digest")}
 if(!require(lubridate)){install.packages("lubridate")}
-if(!require(feedeR)){install.packages("tidyRSS")}
+if(!require(tidyRSS)){install.packages("tidyRSS")}
 if(!require(googlesheets4)){install.packages("googlesheets4")}
 if(!require(emayili)){install.packages("emayili")}
 if(!require(markdown)){install.packages("markdown")}
@@ -65,11 +65,32 @@ get_google_sheet_data <- function(sheet_url, sheet_name) {
 
 rss_sheet_name_sections <- Sys.getenv("RSS_SHEET_NAME_SECTIONS", "Sections")
 rss_sheet_name_feeds <- Sys.getenv("RSS_SHEET_NAME_FEEDS", "Feeds")
+rss_sheet_name_style <- Sys.getenv("RSS_SHEET_NAME_STYLE", "Style") 
 
 gs4_deauth()
 
 sections_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_sections)
 feeds_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_feeds)
+style_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_style)
+
+# Check if style_data was fetched correctly
+if (is.null(style_data) || nrow(style_data) == 0) {
+  stop("Error: Could not retrieve style data from the Google Sheet.")
+}
+
+# Extract style and structure prompts
+style_prompt <- style_data$Style[1]
+structure_prompt <- style_data$Structure[1]
+
+# Construct the system prompt using the style and structure prompts
+system_prompt <- paste(
+  "You are a helpful assistant curating and summarizing daily news for a newsletter.",
+  style_prompt,  # Add the style prompt
+  "Here is the desired structure for the newsletter:",
+  structure_prompt,  # Add the structure prompt
+  "If a section has no new items, state no updates. You will also create a headline section summarizing the top stories across all sections at the beginning of the newsletter."
+)
+
 
 cache_file <- "guids.csv"
 
