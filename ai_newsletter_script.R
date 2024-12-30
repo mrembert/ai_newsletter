@@ -88,7 +88,7 @@ system_prompt <- paste(
   style_prompt,  # Add the style prompt
   "Here is the desired structure for the newsletter:",
   structure_prompt,  # Add the structure prompt
-  "If a section has no new items, state no updates. You will also create a headline section summarizing the top stories across all sections at the beginning of the newsletter."
+  "If a section has no new items, state no updates."
 )
 
 
@@ -268,8 +268,8 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
             # ... (add your safety settings)
           ),
           generation_config = list(
-            temperature = 1  # Adjust as needed
-            # ... (other generation parameters)
+            temperature = 1,  # Adjust as needed
+            max_output_tokens = 150
           )
         )) %>%
         req_url_query("key" = gemini_api_key)
@@ -301,8 +301,11 @@ headline_prompt <- paste0(headline_prompt, all_sections_content)
 
 tryCatch({
   gemini_request <- request(gemini_api_url) %>%
-    req_headers("Content-Type" = "application/json") %>%
-    req_body_json(list(contents = list(parts = list(list(text = headline_prompt))))) %>%  # Simplified
+    req_headers("Content-Type" = "application/json") %>% 
+    req_body_json(list(contents = list(parts = list(list(text = headline_prompt))),generation_config = list(
+      temperature = 1,  # Adjust as needed
+      max_output_tokens = 150
+    ))) %>%  # Simplified
     req_url_query("key" = gemini_api_key)
   
   gemini_response <- gemini_request %>% req_perform() %>% resp_body_json()
