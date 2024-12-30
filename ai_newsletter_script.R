@@ -1,11 +1,11 @@
 # Install required packages if not already installed
 if(!require(httr2)){install.packages("httr2")}
-if(!require(blastula)){install.packages("blastula")}
 if(!require(digest)){install.packages("digest")}
 if(!require(lubridate)){install.packages("lubridate")}
 if(!require(feedeR)){install.packages("tidyRSS")}
 if(!require(googlesheets4)){install.packages("googlesheets4")}
 if(!require(emayili)){install.packages("emayili")}
+if(!require(markdown)){install.packages("markdown")}
 
 # --- Configuration ---
 
