@@ -322,12 +322,8 @@ if (nchar(final_newsletter_content) > 0) {
       html(newsletter_body_html) # Use the pre-converted HTML
     
     # Define SMTP credentials and server
-    server <- server(host = "smtp.gmail.com", 
-                     port = 465, 
-                     username = email_from,
-                     password = email_password, 
-                     tls = FALSE, 
-                     ssl = TRUE)
+    server <- gmail(username = email_from,
+                     password = email_password)
     
     # Send the email
     email %>% server()
