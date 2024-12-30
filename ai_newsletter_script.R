@@ -79,8 +79,8 @@ if (is.null(style_data) || nrow(style_data) == 0) {
 }
 
 # Extract style and structure prompts
-style_prompt <- style_data$Style[1]
-structure_prompt <- style_data$Structure[1]
+style_prompt <- paste(style_data$Style, collapse = ".")
+structure_prompt <- paste(style_data$Structure, collapse = ".")
 
 # Construct the system prompt using the style and structure prompts
 system_prompt <- paste(
