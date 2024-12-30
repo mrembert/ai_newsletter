@@ -315,7 +315,7 @@ if (nchar(final_newsletter_content) > 0) {
       from = email_from,
       subject = email_subject
     ) %>%
-      emayili::html(markdown::renderMarkdown(text = newsletter_body))
+      emayili::html(newsletter_body))
     
     # Define SMTP credentials and server
     server <- gmail(username = email_from, password = email_password)
