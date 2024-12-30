@@ -344,6 +344,7 @@ message("Garbage collection triggered.")
 # --- Newsletter Generation ---
 newsletter_body_md <- paste0("# ", dateline, "\n\n", final_newsletter_content) # Markdown body
 newsletter_body_html <- markdown::renderMarkdown(text = newsletter_body_md) # Convert to HTML
+message("Newsletter ready to send")
 
 # --- Email Sending with emayili ---
 if (nchar(final_newsletter_content) > 0) {
