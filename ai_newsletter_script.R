@@ -40,7 +40,14 @@ if (current_hour < 12) {
 
 
 # System Prompt for Newsletter Consistency (updated for headlines)
-system_prompt <- "You are a helpful assistant curating and summarizing daily news for a newsletter. The newsletter has sections, each concise, informative, and engaging. Maintain consistent tone and style. Format with clear headings, use markdown, avoid jargon, and explain complex topics accessibly. If a section has no new items, state no updates. You will also create a headline section summarizing the top stories across all sections at the beginning of the newsletter."
+system_prompt <- paste0(
+  "You are a helpful assistant curating and summarizing daily news for a newsletter. ",
+  "Focus ONLY on the following section and provide a direct, concise, conversational summary suitable for a newsletter. ",
+  "If the section has no content, return nothing",
+  "Do not include any conversational introductory phrases. Use bullets. ",
+  "Include a link to the source referenced in your summary. Create a working Markdown link in the format '[Link](url)' to reference the source being summarized. Do not generate any other links.\n\n")
+
+headline_prompt <- paste0("You are a helpful assistant curating and summarizing daily news for a newsletter. The newsletter has sections, each concise, informative, and engaging. Please create a headlines section summarizing the most important information from the following newsletter content. Do not include any conversational introductory phrases or a 'Headlines' header.:\n\n")
 
 # --- Helper Functions ---
 
@@ -220,10 +227,7 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
     
     # Create a section-specific prompt:
     section_specific_prompt <- paste0(
-      "You are a helpful assistant curating and summarizing daily news for a newsletter. ",
-      "Focus ONLY on the following section and provide a direct, concise, conversational summary suitable for a newsletter. ",
-      "Do not include any conversational introductory phrases. Use bullets. ",
-      "Include a link to the source referenced in your summary. Use this format: If you see \"[Link]\" in the text, create a working Markdown link in the format '[Link](url)'. Do not generate any other links.\n\n",
+      system_prompt,
       "Section Name: ", section_name, "\n",
       "Section Instructions: ", section_prompt, "\n\n",
       "Here is the information for this section:\n",
@@ -270,7 +274,8 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
 all_sections_content <- paste(unlist(newsletter_content), collapse = "\n\n")
 
 # Generate Headlines section
-headline_prompt <- paste0("You are a helpful assistant curating and summarizing daily news for a newsletter. The newsletter has sections, each concise, informative, and engaging. Maintain consistent tone and style. Format with clear headings, use markdown, avoid jargon, and explain complex topics accessibly.\n\nPlease create a headlines section summarizing the most important information from the following newsletter content. Do not include any conversational introductory phrases or a 'Headlines' header.:\n\n", all_sections_content)
+
+headline_prompt <- paste0(headline_prompt, all_sections_content)
 
 tryCatch({
   gemini_request <- request(gemini_api_url) %>%
