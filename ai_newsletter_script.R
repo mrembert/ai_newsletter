@@ -48,7 +48,7 @@ system_prompt <- paste0(
   "Do not include any conversational introductory phrases. Use bullets. ",
   "Include a link to the source referenced in your summary. Create a working Markdown link in the format '[Link](url)' to reference the source being summarized. Do not generate any other links.\n\n")
 
-headline_prompt <- paste0("You are a helpful assistant curating and summarizing daily news for a newsletter. The newsletter has sections, each concise, informative, and engaging. Please create a headlines section summarizing the most important information from the following newsletter content. Do not include any conversational introductory phrases or a 'Headlines' header.:\n\n")
+headline_prompt <- paste0("You are a helpful assistant curating and summarizing daily news for a newsletter. The newsletter has sections, each concise, informative, and engaging. Please create a headlines section summarizing the most important information from the following newsletter content. Do not include any conversational introductory phrases or a 'Headlines' header. Present the headlines as bullets:\n\n")
 
 # --- Helper Functions ---
 
@@ -269,7 +269,7 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
           ),
           generation_config = list(
             temperature = 1,  # Adjust as needed
-            max_output_tokens = 150
+            max_output_tokens = 500
           )
         )) %>%
         req_url_query("key" = gemini_api_key)
@@ -304,7 +304,7 @@ tryCatch({
     req_headers("Content-Type" = "application/json") %>% 
     req_body_json(list(contents = list(parts = list(list(text = headline_prompt))),generation_config = list(
       temperature = 1,  # Adjust as needed
-      max_output_tokens = 150
+      max_output_tokens = 200
     ))) %>%  # Simplified
     req_url_query("key" = gemini_api_key)
   
