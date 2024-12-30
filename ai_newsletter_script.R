@@ -348,28 +348,31 @@ message("Newsletter ready to send")
 
 # --- Email Sending with emayili ---
 if (nchar(final_newsletter_content) > 0) {
+  message("Attempting to send email...")
   tryCatch({
-    # Create the email message
+    message("Creating email object...")
     email <- emayili::envelope(
       to = email_to,
       from = email_from,
       subject = email_subject
     ) %>%
       html(newsletter_body_html,
-           charset = "UTF-8") # Use the pre-converted HTML
+           charset = "UTF-8")
+    message("Email object created.")
     
-    # Define SMTP credentials and server
+    message("Defining SMTP server...")
     server <- gmail(username = email_from,
-                     password = email_password)
+                    password = email_password)
+    message("SMTP server defined.")
     
-    # Send the email
+    message("Sending email...")
     email %>% server()
-    
-    message("Newsletter sent successfully!")
+    message("Email sent successfully!")
     
   }, error = function(e) {
     message(paste("Error sending email:", e$message))
   })
+  message("Email sending process completed (or errored).")
 } else {
   message("No content to send in the newsletter.")
 }
