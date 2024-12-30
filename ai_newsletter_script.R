@@ -9,7 +9,7 @@ if(!require(googlesheets4)){install.packages("googlesheets4")}
 # --- Configuration ---
 
 # Load secrets from environment variables
-gemini_api_key <- Sys.getenv("GEMINI")
+gemini_api_key <- Sys.getenv("GEMINI_API_KEY")
 email_from <- Sys.getenv("EMAIL_FROM")
 email_to <- Sys.getenv("EMAIL_TO")
 email_password <- Sys.getenv("EMAIL_PASSWORD")
