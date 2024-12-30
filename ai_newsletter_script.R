@@ -306,47 +306,6 @@ for (section_name in sections_data$Section.Name) {
 newsletter_body <- paste0("# ", dateline, "\n\n", final_newsletter_content)
 
 
-# # --- Email Sending ---
-# if (nchar(final_newsletter_content) > 0) { # check if there is actual content to send.
-#   tryCatch({
-#     # Create the email message
-#     # email <- blastula::compose_email(
-#     #   body = blastula::md(newsletter_body)
-#     # )
-#     
-#     email <- compose_email(
-#       body = newsletter_body)
-#     
-#     # Create a credentials object
-#     credentials <- blastula::creds_envvar(
-#       user = email_from,
-#       pass_envvar = "EMAIL_PASSWORD",
-#       host = "smtp.gmail.com",
-#       port = 465,
-#       use_ssl = TRUE
-#     )
-#     
-#     
-#     # Send the email using smtp_send with credentials
-#     blastula::smtp_send(
-#       email,
-#       to = email_to,
-#       from = email_from,
-#       subject = email_subject,
-#       credentials = credentials, # Pass in the credentials object
-#       verbose = TRUE  # Include for debugging
-#     )
-#     
-#     message("Newsletter sent successfully!")
-#     
-#   }, error = function(e) {
-#     message(paste("Error sending email:", e$message))
-#   })
-# } else {
-#   message("No content to send in the newsletter.")
-# }
-
-
 # --- Email Sending with emayili ---
 if (nchar(final_newsletter_content) > 0) {
   tryCatch({

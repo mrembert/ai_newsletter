@@ -20,7 +20,8 @@ jobs:
           use-public-rspm: true
 
       - name: Install R dependencies
-        run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown"))'
+        run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl"))'
+             R -e 'update.packages(ask = FALSE, repos = "https://packagemanager.posit.co/cran/__linux__/noble/latest")'
 
       - name: Cache GUIDs
         id: cache-guids
