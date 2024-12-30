@@ -329,6 +329,17 @@ for (section_name in sections_data$Section.Name) {
 # --- Newsletter Generation & Email Sending (mostly the same) ---
 newsletter_body <- paste0("# ", dateline, "\n\n", final_newsletter_content)
 
+# --- Cleaning up ---
+rm(gemini_request)
+rm(gemini_response)
+rm(feed)
+rm(feeds_data)
+rm(section_items)
+rm(sections_data)
+rm(section_feeds)
+rm
+gc()
+message("Garbage collection triggered.")
 
 # --- Newsletter Generation ---
 newsletter_body_md <- paste0("# ", dateline, "\n\n", final_newsletter_content) # Markdown body
