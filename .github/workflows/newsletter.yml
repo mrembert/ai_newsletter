@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up R
+      - name: Set up R # test
         uses: r-lib/setup-r@v2
         with:
           use-public-rspm: true
