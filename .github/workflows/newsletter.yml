@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-       steps:
+    steps:  # Correct indentation - steps should be under build
       - uses: actions/checkout@v3
       - uses: r-lib/setup-r@v2
       - name: Install System Dependencies
@@ -20,7 +20,6 @@ jobs:
 
       - name: Install R dependencies
         run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl"))'
-             # R -e 'update.packages(ask = FALSE, repos = "https://packagemanager.posit.co/cran/__linux__/noble/latest")'
 
       - name: Cache GUIDs
         id: cache-guids
