@@ -109,6 +109,7 @@ if (!("GUID" %in% names(cache_data))) {
 # Initialize newsletter content and final_newsletter_content
 newsletter_content <- list()
 final_newsletter_content <- ""
+cache_empty <- ifelse(nrow(cache_data)==0), TRUE,FALSE)
 
 # --- RSS Feed Processing and Caching ---
 for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
@@ -127,7 +128,6 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
       # Fetch and parse RSS feed (with error handling)
       tryCatch({
         feed <- tidyRSS::tidyfeed(feed_url)
-        feed <- head(feed,20)
         
         # Reddit vs. Regular RSS Logic
         if ("entry_title" %in% names(feed)) {  # Check if it's a Reddit feed
@@ -144,17 +144,13 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
             
             # Correctly apply the 48-hour filter only if the cache is empty
             if (!(item_guid %in% cache_data$GUID)) {
-              if (nrow(cache_data) == 0) { # Cache is empty
+              if (cache_empty==TRUE) { # Cache is empty
                 if (item_date_published >= (Sys.time() - as.difftime(48, units = "hours"))) {
                   # Process item (within last 48 hours)
                   item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-                    if (grepl(feed_prompt, item_title, ignore.case = TRUE) || grepl(feed_prompt, item_description, ignore.case = TRUE)) {
-                      paste(item_title, item_description, " [Link]")
-                    } else {
-                      ""
-                    }
+                    paste(feed_prompt, item_title, item_description)
                   } else {
-                    paste(item_title, item_description, " [Link]")
+                    paste(item_title, item_description)
                   }
                   
                   if (item_content != "") {
@@ -164,13 +160,9 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
                 }
               } else { # Cache is not empty, process all items
                 item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-                  if (grepl(feed_prompt, item_title, ignore.case = TRUE) || grepl(feed_prompt, item_description, ignore.case = TRUE)) {
-                    paste(item_title, item_description, " [Link]")
-                  } else {
-                    ""
-                  }
+                  paste(feed_prompt, item_title, item_description)
                 } else {
-                  paste(item_title, item_description, " [Link]")
+                  paste(item_title, item_description)
                 }
                 
                 if (item_content != "") {
@@ -194,17 +186,13 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
             
             # Correctly apply the 48-hour filter only if the cache is empty
             if (!(item_guid %in% cache_data$GUID)) {
-              if (nrow(cache_data) == 0) {  # Cache is empty
+              if (cache_empty==TRUE) {  # Cache is empty
                 if (item_date_published >= (Sys.time() - as.difftime(48, units = "hours"))) {
                   # Process item (within last 48 hours)
                   item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-                    if (grepl(feed_prompt, item_title, ignore.case = TRUE) || grepl(feed_prompt, item_description, ignore.case = TRUE)) {
-                      paste(item_title, item_description, " [Link]")
-                    } else {
-                      ""
-                    }
-                  } else {
-                    paste(item_title, item_description, " [Link]")
+                      paste(feed_prompt, item_title, item_description)
+                        } else {
+                    paste(item_title, item_description)
                   }
                   
                   if (item_content != "") {
@@ -214,13 +202,9 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
                 }
               } else {  # Cache is not empty, process all items
                 item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-                  if (grepl(feed_prompt, item_title, ignore.case = TRUE) || grepl(feed_prompt, item_description, ignore.case = TRUE)) {
-                    paste(item_title, item_description, " [Link]")
-                  } else {
-                    ""
-                  }
+                  paste(feed_prompt, item_title, item_description)
                 } else {
-                  paste(item_title, item_description, " [Link]")
+                  paste(item_title, item_description)
                 }
                 
                 if (item_content != "") {
@@ -266,8 +250,7 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
             # ... (add your safety settings)
           ),
           generation_config = list(
-            temperature = 1,  # Adjust as needed
-            max_output_tokens = 500
+            temperature = 1  # Adjust as needed
           )
         )) %>%
         req_url_query("key" = gemini_api_key)
@@ -326,40 +309,10 @@ for (section_name in sections_data$Section.Name) {
 }
 
 # --- Newsletter Generation & Email Sending (mostly the same) ---
-newsletter_body <- paste0("# ", dateline, "\n\n", final_newsletter_content)
-
-# --- Cleaning up ---
-rm(gemini_request)
-rm(gemini_response)
-rm(feed)
-rm(feeds_data)
-rm(section_items)
-rm(sections_data)
-rm(section_feeds)
-rm
-gc()
-message("Garbage collection triggered.")
-
-# --- Newsletter Generation ---
-newsletter_body_md <- paste0("# ", dateline, "\n\n", final_newsletter_content) # Markdown body
-newsletter_body_html <- markdown::renderMarkdown(text = newsletter_body_md) # Convert to HTML
+newsletter_body <- paste0("# ", dateline, "\n\n", "Your Gemini powered newsletter","\n\n",final_newsletter_content)
+newsletter_body_html <- markdown::renderMarkdown(text = newsletter_body) # Convert to HTML
 message("Newsletter ready to send")
 
-# Method 1: Using object.size()
-# Prints the size of the object in bytes
-message("Size of newsletter_body_md:")
-print(object.size(newsletter_body_md))
-
-message("Size of newsletter_body_html:")
-print(object.size(newsletter_body_html))
-
-# Method 2: Using nchar() for character strings
-# Prints the number of characters in the string
-message("Number of characters in newsletter_body_md:")
-print(nchar(newsletter_body_md))
-
-message("Number of characters in newsletter_body_html:")
-print(nchar(newsletter_body_html))
 
 # --- Email Sending with emayili ---
 if (nchar(final_newsletter_content) > 0) {
