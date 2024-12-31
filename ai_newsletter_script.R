@@ -282,7 +282,6 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
       newsletter_content[[section_name]] <- paste0("## ", section_name, "\n", summarized_text, "\n\n")
       message(paste0("Processed section: ", section_name))
       
-      Sys.sleep(10)
       
     }, error = function(e) {
       message(paste("Gemini API Error, Section:", section_name,  "Error:", e$message))
@@ -346,6 +345,22 @@ newsletter_body_md <- paste0("# ", dateline, "\n\n", final_newsletter_content) #
 newsletter_body_html <- markdown::renderMarkdown(text = newsletter_body_md) # Convert to HTML
 message("Newsletter ready to send")
 
+# Method 1: Using object.size()
+# Prints the size of the object in bytes
+message("Size of newsletter_body_md:")
+print(object.size(newsletter_body_md))
+
+message("Size of newsletter_body_html:")
+print(object.size(newsletter_body_html))
+
+# Method 2: Using nchar() for character strings
+# Prints the number of characters in the string
+message("Number of characters in newsletter_body_md:")
+print(nchar(newsletter_body_md))
+
+message("Number of characters in newsletter_body_html:")
+print(nchar(newsletter_body_html))
+
 # --- Email Sending with emayili ---
 if (nchar(final_newsletter_content) > 0) {
   message("Attempting to send email...")
@@ -364,6 +379,9 @@ if (nchar(final_newsletter_content) > 0) {
     server <- gmail(username = email_from,
                     password = email_password)
     message("SMTP server defined.")
+    
+    message("Size of email:")
+    print(object.size(email))
     
     message("Sending email...")
     email %>% server()
