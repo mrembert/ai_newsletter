@@ -17,15 +17,19 @@ email_password <- Sys.getenv("EMAIL_PASSWORD")
 rss_sheet_url <- Sys.getenv("RSS_SHEET_URL")
 gemini_api_url <- "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
 
-# Date for newsletter and subject
-current_date <- today()
+# --- Date and Time Formatting ---
+
+# Get the current time in UTC
+current_time_utc <- Sys.time()
+
+# Convert to EST (or any other desired time zone)
+current_time_est <- with_tz(current_time_utc, tzone = "America/New_York")
 
 # Format the date as "December 30, 2024"
-formatted_date <- format(current_date, "%B %d, %Y")
+formatted_date <- format(current_time_est, "%B %d, %Y")
 
-# Get the current time
-current_time <- Sys.time()
-current_hour <- as.numeric(format(current_time, "%H"))
+# Extract the hour in 24-hour format (use EST time)
+current_hour <- as.numeric(format(current_time_est, "%H"))
 
 # Determine the dateline based on the time of day
 if (current_hour < 12) {
@@ -39,21 +43,7 @@ if (current_hour < 12) {
   email_subject <- paste0("Evening Update - ", formatted_date)
 }
 
-
-# System Prompt for Newsletter Consistency (updated for headlines)
-system_prompt <- paste0(
-  "You are a helpful assistant curating and summarizing daily news for a newsletter. ",
-  "Focus ONLY on the following section and provide a direct, concise, conversational summary suitable for a newsletter. ",
-  "If the section has no content, return nothing",
-  "Do not include any conversational introductory phrases. Use bullets. ",
-  "Include a link to the source referenced in your summary. Create a working Markdown link in the format '[Link](url)' to reference the source being summarized. Do not generate any other links.\n\n")
-
-headline_prompt <- paste0("You are a helpful assistant curating and summarizing daily news for a newsletter. The newsletter has sections, each concise, informative, and engaging. Please create a headlines section summarizing the most important information from the following newsletter content. Do not include any conversational introductory phrases or a 'Headlines' header. Present the headlines as bullets:\n\n")
-
 # --- Helper Functions ---
-
-# Authenticate with Google Sheets - assumes read/write
-#gs4_auth(cache = TRUE) # You may need to set up credentials
 
 get_google_sheet_data <- function(sheet_url, sheet_name) {
   ss <- gs4_get(sheet_url)
@@ -79,8 +69,9 @@ if (is.null(style_data) || nrow(style_data) == 0) {
 }
 
 # Extract style and structure prompts
-style_prompt <- paste(style_data$Style, collapse = ".")
-structure_prompt <- paste(style_data$Structure, collapse = ".")
+style_prompt <- paste(style_data[[1]][!is.na(style_data[[1]])], collapse = ".")
+structure_prompt <- paste(style_data[[2]][!is.na(style_data[[2]])], collapse = ".")
+headline_prompt <- paste(style_data[[3]][!is.na(style_data[[3]])], collapse = ".")
 
 # Construct the system prompt using the style and structure prompts
 system_prompt <- paste(
@@ -91,6 +82,13 @@ system_prompt <- paste(
   "If a section has no new items, state no updates."
 )
 
+headline_prompt <-  paste0("You are a helpful assistant curating and summarizing daily news for a newsletter. 
+                           The newsletter has sections, each concise, informative, and engaging. 
+                           Create a headline that summarizes the most important topics accross all of the sections.
+                           The headline should use this style and structure:",
+                           headline_prompt,
+                           "Here is the newsletter content:")
+                          
 
 cache_file <- "guids.csv"
 
@@ -114,17 +112,17 @@ final_newsletter_content <- ""
 
 # --- RSS Feed Processing and Caching ---
 for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
-  section_name <- sections_data$Section.Name[i]
-  section_prompt <- sections_data$Section.Prompt[i]
+  section_name <- sections_data[[1]][i]
+  section_prompt <- sections_data[[2]][i]
   section_items <- list()
   
   # Get feeds for this section
-  section_feeds <- feeds_data[feeds_data$Section.Name == section_name, ]
+  section_feeds <- feeds_data[feeds_data[[1]] == section_name, ]
   
   if (nrow(section_feeds) > 0) {
     for (j in 1:nrow(section_feeds)) {
-      feed_url <- section_feeds$RSS.Feed.URL[j]
-      feed_prompt <- section_feeds$Feed.Prompt[j]
+      feed_url <- section_feeds[[2]][j]
+      feed_prompt <- section_feeds[[3]][j]
       
       # Fetch and parse RSS feed (with error handling)
       tryCatch({
@@ -142,7 +140,7 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
             item_link <- item$entry_link
             item_date_published <- as.POSIXct(item$entry_published)
             
-            item_guid <- digest(item_link, algo = "sha256")
+            item_guid <- digest(paste0(item_link,'-',item_date_published), algo = "sha256")
             
             # Correctly apply the 48-hour filter only if the cache is empty
             if (!(item_guid %in% cache_data$GUID)) {
@@ -192,7 +190,7 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
             item_link <- item$item_link
             item_date_published <- as.POSIXct(item$item_pub_date)
             
-            item_guid <- digest(item_link, algo = "sha256")
+            item_guid <- digest(paste0(item_link,'-',item_date_published), algo = "sha256")
             
             # Correctly apply the 48-hour filter only if the cache is empty
             if (!(item_guid %in% cache_data$GUID)) {
@@ -295,7 +293,7 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
 all_sections_content <- paste(unlist(newsletter_content), collapse = "\n\n")
 
 # Generate Headlines section
-
+if (nchar(all_sections_content) > 0){
 headline_prompt <- paste0(headline_prompt, all_sections_content)
 
 tryCatch({
@@ -315,7 +313,9 @@ tryCatch({
   message(paste("Headlines Error:", e$message)) # More specific error message
   final_newsletter_content <- "" # Or an error message
 })
-
+} else{
+  final_newsletter_content <- ""
+}
 
 # Assemble final content in section order, adding links
 for (section_name in sections_data$Section.Name) {
