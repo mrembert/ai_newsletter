@@ -366,24 +366,13 @@ if (nchar(final_newsletter_content) > 0) {
   message("Attempting to send email...")
   tryCatch({
     message("Creating email object...")
-    # email <- emayili::envelope(
-    #   to = email_to,
-    #   from = email_from,
-    #   subject = email_subject
-    # ) %>%
-    #   html(newsletter_body_html)
-    # message("Email object created.")
-    
     email <- emayili::envelope(
       to = email_to,
       from = email_from,
       subject = email_subject
     ) %>%
-      html("<h1>Test Email</h1><p>This is a test.</p>")
+      html(newsletter_body_html)
     message("Email object created.")
-    
-
-    
     
     message("Defining SMTP server...")
     server <- gmail(username = email_from,
