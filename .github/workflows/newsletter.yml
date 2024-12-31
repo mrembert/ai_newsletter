@@ -10,9 +10,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    steps:  # Correct indentation - steps should be under build
-      - uses: actions/checkout@v3
-      - uses: r-lib/setup-r@v2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up R
+        uses: r-lib/setup-r@v2
+        with:
+          use-public-rspm: true
+
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -26,7 +32,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: guids.csv
-          key: ${{ runner.os }}-guids-${{ hashFiles('newsletter_script.R') }}
+          key: ${{ runner.os }}-guids-${{ hashFiles('ai_newsletter_script.R') }}
           restore-keys: |
             ${{ runner.os }}-guids-
 
