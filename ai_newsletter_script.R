@@ -109,7 +109,7 @@ if (!("GUID" %in% names(cache_data))) {
 # Initialize newsletter content and final_newsletter_content
 newsletter_content <- list()
 final_newsletter_content <- ""
-cache_empty <- ifelse(nrow(cache_data)==0), TRUE,FALSE)
+cache_empty <- ifelse(nrow(cache_data)==0, TRUE,FALSE)
 
 # --- RSS Feed Processing and Caching ---
 for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
