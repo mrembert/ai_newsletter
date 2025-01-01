@@ -46,5 +46,6 @@ jobs:
         run: Rscript ai_newsletter_script.R
 
       - name: Write Newsletter to workflow summary
+        shell: bash
         run: |
             cat newsletter.md >> $GITHUB_STEP_SUMMARY
