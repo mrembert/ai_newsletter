@@ -311,7 +311,7 @@ tryCatch({
 }
 
 # Assemble final content in section order, adding links
-for (section_name in sections_data$Section.Name) {
+for (section_name in sections_data$[[1]]) {
   if (!is.null(newsletter_content[[section_name]])) {
     # Add links to the original articles
     final_newsletter_content <- paste0(final_newsletter_content, newsletter_content[[section_name]]) # Use text with links
