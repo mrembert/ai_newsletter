@@ -316,6 +316,7 @@ newsletter_body <- paste0("# ", dateline, "\n\n", "Your Gemini powered newslette
 newsletter_body_html <- markdown::renderMarkdown(text = newsletter_body) # Convert to HTML
 message("Newsletter ready to send")
 
+write(newsletter_body, file = "newsletter.md")
 
 # --- Email Sending with emayili ---
 if (nchar(final_newsletter_content) > 0) {
