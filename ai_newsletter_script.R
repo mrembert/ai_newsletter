@@ -158,6 +158,8 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
                   if (item_content != "") {
                     section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
                     cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
+
+print(cache_data)
                   }
                 }
               } else { # Cache is not empty, process all items
@@ -170,6 +172,8 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
                 if (item_content != "") {
                   section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
                   cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
+
+print(cache_data)
                 }
               }
             }
@@ -200,6 +204,8 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
                   if (item_content != "") {
                     section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
                     cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
+
+print(cache_data)
                   }
                 }
               } else {  # Cache is not empty, process all items
@@ -212,6 +218,8 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
                 if (item_content != "") {
                   section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
                   cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
+
+print(cache_data)
                 }
               }
             }
