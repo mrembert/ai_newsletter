@@ -6,16 +6,14 @@ if(!require(tidyRSS)){install.packages("tidyRSS")}
 if(!require(googlesheets4)){install.packages("googlesheets4")}
 if(!require(emayili)){install.packages("emayili")}
 if(!require(markdown)){install.packages("markdown")}
-if(!require(dotenv)){install.packages("dotenv")}
 
 # --- Configuration ---
-library(dotenv)
 
 # Load secrets from environment variables
 gemini_api_key <- Sys.getenv("GEMINI_API_KEY")
-# email_from <- Sys.getenv("EMAIL_FROM")
-# email_to <- Sys.getenv("EMAIL_TO")
-# email_password <- Sys.getenv("EMAIL_PASSWORD")
+email_from <- Sys.getenv("EMAIL_FROM")
+email_to <- Sys.getenv("EMAIL_TO")
+email_password <- Sys.getenv("EMAIL_PASSWORD")
 rss_sheet_url <- Sys.getenv("RSS_SHEET_URL")
 gemini_api_url <- "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
 
@@ -320,38 +318,38 @@ message("Newsletter ready to send")
 
 write(newsletter_body, file = "newsletter.md")
 
-# # --- Email Sending with emayili ---
-# if (nchar(final_newsletter_content) > 0) {
-#   message("Attempting to send email...")
-#   tryCatch({
-#     message("Creating email object...")
-#     email <- emayili::envelope(
-#       to = email_to,
-#       from = email_from,
-#       subject = email_subject
-#     ) %>%
-#       html(newsletter_body_html)
-#     message("Email object created.")
+# --- Email Sending with emayili ---
+if (nchar(final_newsletter_content) > 0) {
+  message("Attempting to send email...")
+  tryCatch({
+    message("Creating email object...")
+    email <- emayili::envelope(
+      to = email_to,
+      from = email_from,
+      subject = email_subject
+    ) %>%
+      html(newsletter_body_html)
+    message("Email object created.")
     
-#     message("Defining SMTP server...")
-#     server <- gmail(username = email_from,
-#                     password = email_password)
-#     message("SMTP server defined.")
+    message("Defining SMTP server...")
+    server <- gmail(username = email_from,
+                    password = email_password)
+    message("SMTP server defined.")
     
-#     message("Size of email:")
-#     print(object.size(email))
+    message("Size of email:")
+    print(object.size(email))
     
-#     message("Sending email...")
-#     email %>% server()
-#     message("Email sent successfully!")
+    message("Sending email...")
+    email %>% server()
+    message("Email sent successfully!")
     
-#   }, error = function(e) {
-#     message(paste("Error sending email:", e$message))
-#   })
-#   message("Email sending process completed (or errored).")
-# } else {
-#   message("No content to send in the newsletter.")
-# }
+  }, error = function(e) {
+    message(paste("Error sending email:", e$message))
+  })
+  message("Email sending process completed (or errored).")
+} else {
+  message("No content to send in the newsletter.")
+}
 
 # --- Cache Update ---
 # Save cache to file
