@@ -108,7 +108,6 @@ if (!("GUID" %in% names(cache_data))) {
   cache_data <- data.frame(GUID = character())
 }
 
-print(cache_data)
 
 # Initialize newsletter content and final_newsletter_content
 newsletter_content <- list()
@@ -160,8 +159,6 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
                   if (item_content != "") {
                     section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
                     cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
-
-print(cache_data)
                   }
                 }
               } else { # Cache is not empty, process all items
@@ -175,7 +172,6 @@ print(cache_data)
                   section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
                   cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
 
-print(cache_data)
                 }
               }
             }
@@ -207,7 +203,6 @@ print(cache_data)
                     section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
                     cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
 
-print(cache_data)
                   }
                 }
               } else {  # Cache is not empty, process all items
@@ -220,8 +215,6 @@ print(cache_data)
                 if (item_content != "") {
                   section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
                   cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
-
-print(cache_data)
                 }
               }
             }
@@ -313,7 +306,7 @@ tryCatch({
 }
 
 # Assemble final content in section order, adding links
-for (section_name in sections_data$Section.Name) {
+for (section_name in sections_data[[1]]) {
   if (!is.null(newsletter_content[[section_name]])) {
     # Add links to the original articles
     final_newsletter_content <- paste0(final_newsletter_content, newsletter_content[[section_name]]) # Use text with links
