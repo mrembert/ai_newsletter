@@ -106,7 +106,7 @@ if (!("GUID" %in% names(cache_data))) {
   cache_data <- data.frame(GUID = character())
 }
 
-print(cache_date)
+print(cache_data)
 
 # Initialize newsletter content and final_newsletter_content
 newsletter_content <- list()
