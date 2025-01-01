@@ -77,7 +77,7 @@ headline_prompt <- paste(style_data[[3]][!is.na(style_data[[3]])], collapse = ".
 system_prompt <- paste(
   "You are a helpful assistant curating and summarizing daily news for a newsletter.",
   "Focus ONLY on the following section and provide a direct, concise, conversational summary suitable for a newsletter.",
-  "Use expressive emojis to communicate topics",
+  "Do not include a header for the section.",
   style_prompt,  # Add the style prompt
   "Here is the desired structure for the newsletter:",
   structure_prompt,  # Add the structure prompt
