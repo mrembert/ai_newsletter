@@ -30,7 +30,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: guids.csv
-          key: ${{ runner.os }}-guids
+          key: ${{ runner.os }}-guids-${{ github.run_id }}  # Unique key with run ID
           restore-keys: |
             ${{ runner.os }}-guids
 
@@ -49,10 +49,4 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: guids.csv
-          key: ${{ runner.os }}-guids
-        if: always() # Ensure cache is always saved
-
-      - name: Write Newsletter to workflow summary
-        shell: bash
-        run: |
-            cat newsletter.md >> $GITHUB_STEP_SUMMARY
+          key: ${{ runner.os }}-guids-${{ github.run_id }}  # Matching key with run
