@@ -47,7 +47,7 @@ jobs:
           RSS_SHEET_URL: ${{ secrets.RSS_SHEET_URL }}
           RSS_SHEET_NAME_SECTIONS: ${{ secrets.RSS_SHEET_NAME_SECTIONS || 'Sections' }}
           RSS_SHEET_NAME_FEEDS: ${{ secrets.RSS_SHEET_NAME_FEEDS || 'Feeds' }}
-        run: Rscript test_cache.R #  Rscript ai_newsletter_script.R
+        run: Rscript ai_newsletter_script.R
 
       - name: Check if guids.csv exists after R script
         run: if exist guids.csv (echo "guids.csv exists after R script") else (echo "guids.csv does NOT exist after R script")
