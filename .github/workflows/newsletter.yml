@@ -25,7 +25,8 @@ jobs:
         run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl"))'
 
       - name: Log Cache Key Before Restore
-        run: echo "Cache key before restore: ${{ runner.os }}-guids"
+        run: |
+          echo "Cache key before restore: ${{ runner.os }}-guids"
 
       - name: Cache GUIDs (Restore)
         id: cache-guids
