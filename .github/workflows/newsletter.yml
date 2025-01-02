@@ -56,7 +56,8 @@ jobs:
         run: if exist guids.csv (type guids.csv) else (echo "guids.csv does not exist")
 
       - name: Log Cache Key Before Save
-        run: echo "Cache key before save: ${{ runner.os }}-guids"
+        run: |
+          echo "Cache key before save: ${{ runner.os }}-guids"
 
       - name: Save Cache (GUIDs)
         if: success()
