@@ -50,10 +50,10 @@ jobs:
         run: Rscript ai_newsletter_script.R
 
       - name: Check if guids.csv exists after R script
-        run: if exist guids.csv (echo "guids.csv exists after R script") else (echo "guids.csv does NOT exist after R script")
+        run: if exist (guids.csv) (echo "guids.csv exists after R script") else (echo "guids.csv does NOT exist after R script")
 
       - name: Show content of guids.csv after R script
-        run: if exist guids.csv (type guids.csv) else (echo "guids.csv does not exist")
+        run: if exist (guids.csv) (type guids.csv) else (echo "guids.csv does not exist")
 
       - name: Log Cache Key Before Save
         run: |
@@ -70,7 +70,3 @@ jobs:
         shell: bash
         run: |
             cat newsletter.md >> $GITHUB_STEP_SUMMARY
-
-      - name: Setup tmate session
-        if: always()
-        uses: mxschmitt/action-tmate@v3
