@@ -12,7 +12,6 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -30,7 +29,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: guids.csv
-          key: ${{ runner.os }}-guids-${{ github.run_id }}  # Unique key with run ID
+          key: ${{ runner.os }}-guids
           restore-keys: |
             ${{ runner.os }}-guids
 
@@ -47,6 +46,12 @@ jobs:
 
       - name: Save Cache (GUIDs)
         uses: actions/cache/save@v3
+        if: always()
         with:
           path: guids.csv
-          key: ${{ runner.os }}-guids-${{ github.run_id }}  # Matching key with run
+          key: ${{ runner.os }}-guids
+
+      - name: Write Newsletter to workflow summary
+        shell: bash
+        run: |
+            cat newsletter.md >> $GITHUB_STEP_SUMMARY
