@@ -141,7 +141,7 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
             item_link <- item$entry_link
             item_date_published <- as.POSIXct(item$entry_published)
             
-            item_guid <- digest(paste0(item_link,'-',item_date_published), algo = "sha256")
+            item_guid <- digest(paste0(item_link), algo = "sha256")
             
             # Correctly apply the 48-hour filter only if the cache is empty
             if (!(item_guid %in% cache_data$GUID)) {
