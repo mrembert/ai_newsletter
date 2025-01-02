@@ -29,8 +29,8 @@ jobs:
 
       - name: Cache GUIDs (Restore)
         id: cache-guids
+        if: always()  # Apply conditional to the entire step
         uses: actions/cache@v4
-        if: always()
         with:
           path: guids.csv
           key: ${{ runner.os }}-guids
@@ -52,8 +52,8 @@ jobs:
         run: echo "Cache key before save: ${{ runner.os }}-guids"
 
       - name: Save Cache (GUIDs)
+        if: success() # Apply conditional to the entire step
         uses: actions/cache@v4
-        if: success()
         with:
           path: guids.csv
           key: ${{ runner.os }}-guids
