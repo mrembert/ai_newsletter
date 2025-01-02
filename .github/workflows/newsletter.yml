@@ -26,16 +26,14 @@ jobs:
         run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl"))'
 
       - name: Cache GUIDs
-  id: cache-guids
-  uses: actions/cache@v4 # Use latest version for save-always
-  with:
-    path: guids.csv
-    key: ${{ runner.os }}-guids # Simple key, always restore and save
-    restore-keys: |
-      ${{ runner.os }}-guids # Fallback key (same as primary)
-    save-always: true # Force saving the cache every time
-
-
+        id: cache-guids
+        uses: actions/cache@v4
+        with:
+          path: guids.csv
+          key: ${{ runner.os }}-guids
+          restore-keys: |
+            ${{ runner.os }}-guids
+          save-always: true
 
       - name: Execute R Script
         env:
