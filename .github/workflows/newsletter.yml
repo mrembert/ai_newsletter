@@ -80,7 +80,3 @@ jobs:
         shell: bash
         run: |
             cat newsletter.md >> $GITHUB_STEP_SUMMARY
-
-      - name: Setup tmate session
-        if: always()
-        uses: mxschmitt/action-tmate@v3
