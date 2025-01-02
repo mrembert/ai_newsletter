@@ -29,6 +29,7 @@ jobs:
 
       - name: Cache GUIDs (Restore)
         id: cache-guids
+        if: always()
         uses: actions/cache@v4
         with:
           path: guids.csv
@@ -45,12 +46,19 @@ jobs:
           RSS_SHEET_URL: ${{ secrets.RSS_SHEET_URL }}
           RSS_SHEET_NAME_SECTIONS: ${{ secrets.RSS_SHEET_NAME_SECTIONS || 'Sections' }}
           RSS_SHEET_NAME_FEEDS: ${{ secrets.RSS_SHEET_NAME_FEEDS || 'Feeds' }}
-        run: Rscript ai_newsletter_script.R
+        run: Rscript test_cache.R #  Rscript ai_newsletter_script.R
+
+      - name: Check if guids.csv exists after R script
+        run: if exist guids.csv (echo "guids.csv exists after R script") else (echo "guids.csv does NOT exist after R script")
+
+      - name: Show content of guids.csv after R script
+        run: if exist guids.csv (type guids.csv) else (echo "guids.csv does not exist")
 
       - name: Log Cache Key Before Save
         run: echo "Cache key before save: ${{ runner.os }}-guids"
 
       - name: Save Cache (GUIDs)
+        if: success()
         uses: actions/cache@v4
         with:
           path: guids.csv
@@ -60,3 +68,7 @@ jobs:
         shell: bash
         run: |
             cat newsletter.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Setup tmate session
+        if: always()
+        uses: mxschmitt/action-tmate@v3
