@@ -30,7 +30,7 @@ jobs:
       - name: Cache GUIDs (Restore)
         id: cache-guids
         uses: actions/cache@v4
-        if: always() # Attempt to restore even on failure for robustness 
+        if: always() 
         with:
           path: guids.csv
           key: ${{ runner.os }}-guids
