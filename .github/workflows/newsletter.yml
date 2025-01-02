@@ -53,7 +53,7 @@ jobs:
 
       - name: Save Cache (GUIDs)
         uses: actions/cache@v4
-        if: success() # Only save cache if R script succeeded
+        if: success() 
         with:
           path: guids.csv
           key: ${{ runner.os }}-guids
