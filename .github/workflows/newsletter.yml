@@ -24,9 +24,13 @@ jobs:
       - name: Install R dependencies
         run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl"))'
 
+      - name: Log Cache Key Before Restore
+        run: echo "Cache key before restore: ${{ runner.os }}-guids"
+
       - name: Cache GUIDs (Restore)
         id: cache-guids
         uses: actions/cache@v4
+        if: always() # Attempt to restore even on failure for robustness 
         with:
           path: guids.csv
           key: ${{ runner.os }}-guids
@@ -44,6 +48,15 @@ jobs:
           RSS_SHEET_NAME_FEEDS: ${{ secrets.RSS_SHEET_NAME_FEEDS || 'Feeds' }}
         run: Rscript ai_newsletter_script.R
 
+      - name: Log Cache Key Before Save
+        run: echo "Cache key before save: ${{ runner.os }}-guids"
+
+      - name: Save Cache (GUIDs)
+        uses: actions/cache@v4
+        if: success() # Only save cache if R script succeeded
+        with:
+          path: guids.csv
+          key: ${{ runner.os }}-guids
 
       - name: Write Newsletter to workflow summary
         shell: bash
