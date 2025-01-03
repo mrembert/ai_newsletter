@@ -63,6 +63,8 @@ sections_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_nam
 feeds_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_feeds)
 style_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_style)
 
+print(style_data)
+
 # Check if style_data was fetched correctly
 if (is.null(style_data) | nrow(style_data) == 0) {
   stop("Error: Could not retrieve style data from the Google Sheet.")
