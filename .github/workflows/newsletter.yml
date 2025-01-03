@@ -27,7 +27,7 @@ jobs:
       - name: Download GUIDs Artifact (if exists)
         id: download-guids
         continue-on-error: true
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: guids-artifact
           path: .
@@ -71,7 +71,7 @@ jobs:
           }
 
       - name: Upload GUIDs as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: guids-artifact
           path: guids.csv
