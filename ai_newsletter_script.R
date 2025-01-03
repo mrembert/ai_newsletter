@@ -137,103 +137,104 @@ cache_empty <- ifelse(nrow(cache_data) == 0, TRUE, FALSE)
 
 # --- RSS Feed Processing and Caching ---
 for (i in 1:nrow(sections_data)) {
-  tryCatch({
-    section_name <- sections_data[[1]][i]
-    section_prompt <- sections_data[[2]][i]
-    section_items <- list()
-
-    # Get feeds for this section
-    section_feeds <- feeds_data[feeds_data[[1]] == section_name, ]
-
-    if (nrow(section_feeds) > 0) {
-      for (j in 1:nrow(section_feeds)) {
-        feed_url <- section_feeds[[2]][j]
-        feed_prompt <- section_feeds[[3]][j]
-
-        tryCatch({
-          feed <- tidyRSS::tidyfeed(feed_url)
-
-          # Reddit vs. Regular RSS Logic
-          if ("entry_title" %in% names(feed)) {
-            names(feed)[names(feed) == "entry_title"] <- "item_title"
-            names(feed)[names(feed) == "entry_content"] <-
-              "item_description"
-            names(feed)[names(feed) == "entry_published"] <-
-              "item_pub_date"
-            names(feed)[names(feed) == "entry_link"] <-
-              "item_link"
+  # Process in order from sections_data
+  section_name <- sections_data[[1]][i]
+  section_prompt <- sections_data[[2]][i]
+  section_items <- list()
+  feed_items <- list() # Initialize a list to store items for each feed
+  
+  # Get feeds for this section
+  section_feeds <- feeds_data[feeds_data[[1]] == section_name, ]
+  
+  if (nrow(section_feeds) > 0) {
+    for (j in 1:nrow(section_feeds)) {
+      feed_url <- section_feeds[[2]][j]
+      feed_prompt <- section_feeds[[3]][j]
+      
+      # Fetch and parse RSS feed (with error handling)
+      tryCatch({
+        feed <- tidyRSS::tidyfeed(feed_url)
+        
+        # Reddit vs. Regular RSS Logic
+        if ("entry_title" %in% names(feed)) {
+          # Check if it's a Reddit feed
+          # Rename columns directly without dplyr
+          names(feed)[names(feed) == "entry_title"] <- "item_title"
+          names(feed)[names(feed) == "entry_content"] <- "item_description"
+          names(feed)[names(feed) == "entry_published"] <- "item_pub_date"
+          names(feed)[names(feed) == "entry_link"] <- "item_link"
+        } else {
+          names(feed)[names(feed) == "item_title"] <- "item_title"
+          names(feed)[names(feed) == "item_desc"] <- "item_description"
+          names(feed)[names(feed) == "item_pub_date"] <- "item_pub_date"
+          names(feed)[names(feed) == "item_link"] <- "item_link"
+        }
+        
+        for (k in 1:nrow(feed)) {
+          item <- feed[k, ]
+          
+          item_title <- item$item_title
+          item_description <- item$item_description
+          item_link <- item$item_link
+          
+          # Parse date correctly
+          if ("item_pub_date" %in% names(item)) {
+            item_date_published <- as.POSIXct(item$item_pub_date)
+          } else if ("entry_published" %in% names(item)) {
+            item_date_published <- as.POSIXct(item$entry_published)
+          } else {
+            item_date_published <- NA  # Handle cases where date is missing
           }
-
-          for (k in 1:nrow(feed)) {
-            item <- feed[k, ]
-
-            item_title <- item$item_title
-            item_description <- item$item_description
-            item_link <- item$item_link
-
-            # Parse date
-            if ("item_pub_date" %in% names(item)) {
-              item_date_published <- as.POSIXct(item$item_pub_date)
-            } else if ("entry_published" %in% names(item)) {
-              item_date_published <- as.POSIXct(item$entry_published)
-            } else {
-              item_date_published <- NA
+          
+          item_guid <- digest(paste0(item_link, "-", item_date_published), algo = "sha256")
+          
+          # Check if the item is new or within the last 48 hours if cache is empty
+          is_new_item <- !(item_guid %in% cache_data$GUID)
+          is_within_48_hours <- cache_empty && (difftime(current_time_utc, item_date_published, units = "hours") <= 48)
+          
+          if (is_new_item || is_within_48_hours) {
+            # Process item
+            item_content <- paste(item_title, item_description) # Combine title and description
+            
+            if (is.null(feed_items[[feed_prompt]])) {
+              feed_items[[feed_prompt]] <- list() # Initialize an empty list for this feed if it doesn't exist
             }
-
-            item_guid <-
-              digest(paste0(item_link, "-", item_date_published), algo = "sha256")
-
-            # Check if the item is new or within the last 48 hours if cache is empty
-            is_new_item <- !(item_guid %in% cache_data$GUID)
-            is_within_48_hours <-
-              cache_empty &&
-              (difftime(current_time_utc, item_date_published, units = "hours") <= 48)
-
-            if (is_new_item || is_within_48_hours) {
-              item_content <-
-                if (!is.na(feed_prompt) && feed_prompt != "") {
-                  paste(feed_prompt, item_title, item_description)
-                } else {
-                  paste(item_title, item_description)
-                }
-              section_items <-
-                c(section_items, list(
-                  list(
-                    title = item_title,
-                    content = item_content,
-                    link = item_link
-                  )
-                ))
-              cache_data <-
-                rbind(cache_data, data.frame(GUID = item_guid))
-            }
+            
+            feed_items[[feed_prompt]] <- c(feed_items[[feed_prompt]], list(list(title = item_title, content = item_content, link = item_link)))
+            cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
           }
-        }, error = function(e) {
-          message(paste("Error with feed:", feed_url, "Error:", e$message))
-        })
+        }
+      }, error = function(e) {
+        message(paste("Error with feed:", feed_url, "Error:", e$message))
+      })
+    }
+  }
+  
+  # --- Structure the Section Content ---
+  section_content_parts <- list()
+  
+  if (length(feed_items) > 0) { # Check if feed_items has any items
+    section_content_parts <- c(section_content_parts, paste("Section prompt:", section_prompt))
+    
+    for (feed_prompt in names(feed_items)) {
+      section_content_parts <- c(section_content_parts, paste("Feed prompt:", feed_prompt))
+      for (item in feed_items[[feed_prompt]]) {
+        section_content_parts <- c(section_content_parts, paste0(item$title, ": ", item$content, " (", item$link, ")"))
       }
     }
-
-    # --- Gemini API Interaction ---
-    if (length(section_items) > 0) {
-      # Combine items for each section, including links
-      combined_items_text <-
-        paste(sapply(section_items, function(item)
-          paste0(item$title, ": ", item$content, " (", item$link, ")")), collapse = "\n\n")
-
-      # Create a section-specific prompt
+    
+    combined_items_text <- paste(section_content_parts, collapse = "\n\n")
+    
+    # --- Gemini 1.5 Flash API Interaction ---
+    if (nchar(combined_items_text) > 0) {
+      # Create a section-specific prompt:
       section_specific_prompt <- paste0(
         system_prompt,
-        "Section Name: ",
-        section_name,
-        "\n",
-        "Section Instructions: ",
-        section_prompt,
-        "\n\n",
+        "Section Name: ", section_name, "\n\n",
         "Here is the information for this section:\n",
         combined_items_text
       )
-
+      
       tryCatch({
         gemini_request <- request(gemini_api_url) %>%
           req_headers("Content-Type" = "application/json") %>%
@@ -245,17 +246,17 @@ for (i in 1:nrow(sections_data)) {
             generation_config = list(temperature = 1)
           )) %>%
           req_url_query("key" = gemini_api_key)
-
+        
         gemini_response <- gemini_request %>%
           req_perform() %>%
           resp_body_json()
-
+        
         summarized_text <-
           gemini_response$candidates[[1]]$content$parts[[1]]$text
         newsletter_content[[section_name]] <-
           paste0("## ", section_name, "\n", summarized_text, "\n\n")
         message(paste0("Processed section: ", section_name))
-
+        
       }, error = function(e) {
         message(
           paste(
@@ -269,14 +270,9 @@ for (i in 1:nrow(sections_data)) {
           paste0("## ", section_name, "\n", "Error summarizing this section.\n\n")
       })
     }
-  }, error = function(e) {
-    message(paste(
-      "Error in section processing:",
-      section_name,
-      "Error:",
-      e$message
-    ))
-  })
+  } else {
+    message(paste("No new items found for section:", section_name))
+  }
 }
 
 # --- Combine sections, generate Headlines, and re-assemble in order ---
@@ -286,7 +282,7 @@ all_sections_content <-
 # Generate Headlines section
 if (nchar(all_sections_content) > 0) {
   headline_prompt <- paste0(headline_prompt, all_sections_content)
-
+  
   tryCatch({
     gemini_request <- request(gemini_api_url) %>%
       req_headers("Content-Type" = "application/json") %>%
@@ -298,13 +294,13 @@ if (nchar(all_sections_content) > 0) {
         )
       )) %>%
       req_url_query("key" = gemini_api_key)
-
+    
     gemini_response <- gemini_request %>%
       req_perform() %>%
       resp_body_json()
     headline_text <-
       gemini_response$candidates[[1]]$content$parts[[1]]$text
-
+    
     final_newsletter_content <-
       paste0("# Headlines\n\n", headline_text, "\n\n")
   }, error = function(e) {
@@ -344,19 +340,19 @@ if (nchar(final_newsletter_content) > 0) {
     ) %>%
       html(newsletter_body_html)
     message("Email object created.")
-
+    
     message("Defining SMTP server...")
     server <- gmail(username = email_from,
                     password = email_password)
     message("SMTP server defined.")
-
+    
     message("Size of email:")
     print(object.size(email))
-
+    
     message("Sending email...")
     email %>% server()
     message("Email sent successfully!")
-
+    
   }, error = function(e) {
     message(paste("Error sending email:", e$message))
   })
