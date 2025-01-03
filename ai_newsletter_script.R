@@ -204,74 +204,71 @@ for (i in 1:nrow(sections_data)) {
             cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
           }
         }
+        
+        # --- Structure the Section Content for this feed ---
+        
+        if (length(feed_items[[feed_prompt]]) > 0) { # Check if this specific feed has items
+          section_content_parts <- list() # Moved inside the inner loop
+          section_content_parts <- c(section_content_parts, paste("Section prompt:", section_prompt))
+          section_content_parts <- c(section_content_parts, paste("Feed prompt:", feed_prompt))
+          for (item in feed_items[[feed_prompt]]) {
+            section_content_parts <- c(section_content_parts, paste0(item$title, ": ", item$content, " (", item$link, ")"))
+          }
+          combined_items_text <- paste(section_content_parts, collapse = "\n\n")
+          # --- Gemini 1.5 Flash API Interaction ---
+          if (nchar(combined_items_text) > 0) {
+            # Create a section-specific prompt:
+            section_specific_prompt <- paste0(
+              system_prompt,
+              "Section Name: ", section_name, "\n\n",
+              "Here is the information for this section:\n",
+              combined_items_text
+            )
+            
+            tryCatch({
+              gemini_request <- request(gemini_api_url) %>%
+                req_headers("Content-Type" = "application/json") %>%
+                req_body_json(list(
+                  contents = list(parts = list(list(
+                    text = section_specific_prompt
+                  ))),
+                  safety_settings = list(),
+                  generation_config = list(temperature = 1)
+                )) %>%
+                req_url_query("key" = gemini_api_key)
+              
+              gemini_response <- gemini_request %>%
+                req_perform() %>%
+                resp_body_json()
+              
+              summarized_text <-
+                gemini_response$candidates[[1]]$content$parts[[1]]$text
+              newsletter_content[[section_name]] <-
+                paste0("## ", section_name, "\n", summarized_text, "\n\n")
+              message(paste0("Processed section: ", section_name))
+              
+            }, error = function(e) {
+              message(
+                paste(
+                  "Gemini API Error, Section:",
+                  section_name,
+                  "Error:",
+                  e$message
+                )
+              )
+              newsletter_content[[section_name]] <-
+                paste0("## ", section_name, "\n", "Error summarizing this section.\n\n")
+            })
+          }
+        } else {
+          message(paste("No new items found for feed:", feed_url, "in section:", section_name))
+        }
       }, error = function(e) {
         message(paste("Error with feed:", feed_url, "Error:", e$message))
       })
     }
-  }
-  
-  # --- Structure the Section Content ---
-  section_content_parts <- list()
-  
-  if (length(feed_items) > 0) { # Check if feed_items has any items
-    section_content_parts <- c(section_content_parts, paste("Section prompt:", section_prompt))
-    
-    for (feed_prompt in names(feed_items)) {
-      section_content_parts <- c(section_content_parts, paste("Feed prompt:", feed_prompt))
-      for (item in feed_items[[feed_prompt]]) {
-        section_content_parts <- c(section_content_parts, paste0(item$title, ": ", item$content, " (", item$link, ")"))
-      }
-    }
-    
-    combined_items_text <- paste(section_content_parts, collapse = "\n\n")
-    
-    # --- Gemini 1.5 Flash API Interaction ---
-    if (nchar(combined_items_text) > 0) {
-      # Create a section-specific prompt:
-      section_specific_prompt <- paste0(
-        system_prompt,
-        "Section Name: ", section_name, "\n\n",
-        "Here is the information for this section:\n",
-        combined_items_text
-      )
-      
-      tryCatch({
-        gemini_request <- request(gemini_api_url) %>%
-          req_headers("Content-Type" = "application/json") %>%
-          req_body_json(list(
-            contents = list(parts = list(list(
-              text = section_specific_prompt
-            ))),
-            safety_settings = list(),
-            generation_config = list(temperature = 1)
-          )) %>%
-          req_url_query("key" = gemini_api_key)
-        
-        gemini_response <- gemini_request %>%
-          req_perform() %>%
-          resp_body_json()
-        
-        summarized_text <-
-          gemini_response$candidates[[1]]$content$parts[[1]]$text
-        newsletter_content[[section_name]] <-
-          paste0("## ", section_name, "\n", summarized_text, "\n\n")
-        message(paste0("Processed section: ", section_name))
-        
-      }, error = function(e) {
-        message(
-          paste(
-            "Gemini API Error, Section:",
-            section_name,
-            "Error:",
-            e$message
-          )
-        )
-        newsletter_content[[section_name]] <-
-          paste0("## ", section_name, "\n", "Error summarizing this section.\n\n")
-      })
-    }
   } else {
-    message(paste("No new items found for section:", section_name))
+    message(paste("No feeds found for section:", section_name))
   }
 }
 
