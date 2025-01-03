@@ -63,7 +63,18 @@ sections_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_nam
 feeds_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_feeds)
 style_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_style)
 
+print("Style Data:")
 print(style_data)
+print(paste("Number of rows in style_data:", nrow(style_data)))
+print(paste("Number of columns in style_data:", ncol(style_data)))
+print("Column Names:")
+print(colnames(style_data))
+
+# Check each column for content
+for (col in colnames(style_data)) {
+  print(paste("Content of column", col, ":"))
+  print(style_data[[col]])
+}
 
 # Check if style_data was fetched correctly
 if (is.null(style_data) | nrow(style_data) == 0) {
@@ -96,11 +107,13 @@ headline_prompt <-  paste0("You are a helpful assistant curating and summarizing
 cache_file <- "guids.csv"
 
 # Load cache from file if it exists
-if (file.exists(cache_file)) {
-  cache_data <- read.csv(cache_file)
-} else {
-  cache_data <- data.frame(GUID = character())
-}
+if (file.exists(cache_file) && file.info(cache_file)$size > 0) {
+      cache_data <- read.csv(cache_file)
+      print("Cache data loaded successfully.")
+    } else {
+      cache_data <- data.frame(GUID = character())
+      print("Cache file does not exist or is empty. Initializing new cache.")
+    }
 
 # Ensure cache_data is a data frame with a "GUID" column
 if (!("GUID" %in% names(cache_data))) {
