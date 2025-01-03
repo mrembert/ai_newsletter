@@ -6,7 +6,6 @@ if(!require(tidyRSS)){install.packages("tidyRSS")}
 if(!require(googlesheets4)){install.packages("googlesheets4")}
 if(!require(emayili)){install.packages("emayili")}
 if(!require(markdown)){install.packages("markdown")}
-if(!require(tidyverse)){install.packages("tidyverse")}
 
 # --- Configuration ---
 
@@ -56,7 +55,7 @@ get_google_sheet_data <- function(sheet_url, sheet_name) {
 
 rss_sheet_name_sections <- Sys.getenv("RSS_SHEET_NAME_SECTIONS", "Sections")
 rss_sheet_name_feeds <- Sys.getenv("RSS_SHEET_NAME_FEEDS", "Feeds")
-rss_sheet_name_style <- Sys.getenv("RSS_SHEET_NAME_STYLE", "Style") 
+rss_sheet_name_style <- Sys.getenv("RSS_SHEET_NAME_STYLE", "Style")
 
 gs4_deauth()
 
@@ -85,13 +84,12 @@ system_prompt <- paste(
   "If a section has no new items, state no updates."
 )
 
-headline_prompt <-  paste0("You are a helpful assistant curating and summarizing daily news for a newsletter. 
-                           The newsletter has sections, each concise, informative, and engaging. 
+headline_prompt <-  paste0("You are a helpful assistant curating and summarizing daily news for a newsletter.
+                           The newsletter has sections, each concise, informative, and engaging.
                            Create a headline that summarizes the most important topics accross all of the sections.
                            The headline should use this style and structure:",
                            headline_prompt,
                            "Here is the newsletter content:")
-                          
 
 cache_file <- "guids.csv"
 
@@ -107,7 +105,6 @@ if (!("GUID" %in% names(cache_data))) {
   cache_data <- data.frame(GUID = character())
 }
 
-
 # Initialize newsletter content and final_newsletter_content
 newsletter_content <- list()
 final_newsletter_content <- ""
@@ -119,37 +116,35 @@ for (i in 1:nrow(sections_data)) {
   section_name <- sections_data[[1]][i]
   section_prompt <- sections_data[[2]][i]
   section_items <- list()
-  
+
   # Get feeds for this section
   section_feeds <- feeds_data[feeds_data[[1]] == section_name, ]
-  
+
   if (nrow(section_feeds) > 0) {
     for (j in 1:nrow(section_feeds)) {
       feed_url <- section_feeds[[2]][j]
       feed_prompt <- section_feeds[[3]][j]
-      
+
       # Fetch and parse RSS feed (with error handling)
       tryCatch({
         feed <- tidyRSS::tidyfeed(feed_url)
-        
+
         # Reddit vs. Regular RSS Logic
         if ("entry_title" %in% names(feed)) {
           # Check if it's a Reddit feed
-          feed <- feed |>
-            rename(
-              item_title = entry_title,
-              item_description = entry_content,
-              item_pub_date = entry_published
-            )
+          # Rename columns directly without dplyr
+          names(feed)[names(feed) == "entry_title"] <- "item_title"
+          names(feed)[names(feed) == "entry_content"] <- "item_description"
+          names(feed)[names(feed) == "entry_published"] <- "item_pub_date"
         }
-        
+
         for (k in 1:nrow(feed)) {
           item <- feed[k, ]
-          
+
           item_title <- item$item_title
           item_description <- item$item_description
           item_link <- item$item_link
-          
+
           # Parse date correctly
           if ("item_pub_date" %in% names(item)) {
             item_date_published <- as.POSIXct(item$item_pub_date)
@@ -158,13 +153,13 @@ for (i in 1:nrow(sections_data)) {
           } else {
             item_date_published <- NA  # Handle cases where date is missing
           }
-          
+
           item_guid <- digest(paste0(item_link, "-", item_date_published), algo = "sha256")
-          
+
           # Check if the item is new or within the last 48 hours if cache is empty
           is_new_item <- !(item_guid %in% cache_data$GUID)
           is_within_48_hours <- cache_empty && (difftime(current_time_utc, item_date_published, units = "hours") <= 48)
-          
+
           if (is_new_item || is_within_48_hours) {
             # Process item
             item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
@@ -181,12 +176,12 @@ for (i in 1:nrow(sections_data)) {
       })
     }
   }
-  
+
   # --- Gemini 1.5 Flash API Interaction ---
   if (length(section_items) > 0) {
     # Combine items for each section, including links:
     combined_items_text <- paste(sapply(section_items, function(item) paste0(item$title, ": ", item$content, " (", item$link, ")")), collapse = "\n\n")
-    
+
     # Create a section-specific prompt:
     section_specific_prompt <- paste0(
       system_prompt,
@@ -195,7 +190,7 @@ for (i in 1:nrow(sections_data)) {
       "Here is the information for this section:\n",
       combined_items_text
     )
-    
+
     tryCatch({
       gemini_request <- request(gemini_api_url) %>%
         req_headers("Content-Type" = "application/json") %>%
@@ -212,16 +207,15 @@ for (i in 1:nrow(sections_data)) {
           )
         )) %>%
         req_url_query("key" = gemini_api_key)
-      
+
       gemini_response <- gemini_request %>%
         req_perform() %>%
         resp_body_json()
-      
+
       summarized_text <- gemini_response$candidates[[1]]$content$parts[[1]]$text
       newsletter_content[[section_name]] <- paste0("## ", section_name, "\n", summarized_text, "\n\n")
       message(paste0("Processed section: ", section_name))
-      
-      
+
     }, error = function(e) {
       message(paste("Gemini API Error, Section:", section_name,  "Error:", e$message))
       newsletter_content[[section_name]] <- paste0("## ", section_name, "\n", "Error summarizing this section.\n\n")
@@ -239,16 +233,16 @@ headline_prompt <- paste0(headline_prompt, all_sections_content)
 
 tryCatch({
   gemini_request <- request(gemini_api_url) %>%
-    req_headers("Content-Type" = "application/json") %>% 
+    req_headers("Content-Type" = "application/json") %>%
     req_body_json(list(contents = list(parts = list(list(text = headline_prompt))),generation_config = list(
       temperature = 1,  # Adjust as needed
       max_output_tokens = 200
     ))) %>%  # Simplified
     req_url_query("key" = gemini_api_key)
-  
+
   gemini_response <- gemini_request %>% req_perform() %>% resp_body_json()
   headline_text <- gemini_response$candidates[[1]]$content$parts[[1]]$text
-  
+
   final_newsletter_content <- paste0("# Headlines\n\n", headline_text, "\n\n")
 }, error = function(e) {
   message(paste("Headlines Error:", e$message)) # More specific error message
@@ -285,19 +279,19 @@ if (nchar(final_newsletter_content) > 0) {
     ) %>%
       html(newsletter_body_html)
     message("Email object created.")
-    
+
     message("Defining SMTP server...")
     server <- gmail(username = email_from,
                     password = email_password)
     message("SMTP server defined.")
-    
+
     message("Size of email:")
     print(object.size(email))
-    
+
     message("Sending email...")
     email %>% server()
     message("Email sent successfully!")
-    
+
   }, error = function(e) {
     message(paste("Error sending email:", e$message))
   })
