@@ -6,6 +6,7 @@ if(!require(tidyRSS)){install.packages("tidyRSS")}
 if(!require(googlesheets4)){install.packages("googlesheets4")}
 if(!require(emayili)){install.packages("emayili")}
 if(!require(markdown)){install.packages("markdown")}
+if(!require(tidyverse)){install.packages("tidyverse")}
 
 # --- Configuration ---
 
@@ -113,7 +114,8 @@ final_newsletter_content <- ""
 cache_empty <- ifelse(nrow(cache_data)==0, TRUE,FALSE)
 
 # --- RSS Feed Processing and Caching ---
-for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
+for (i in 1:nrow(sections_data)) {
+  # Process in order from sections_data
   section_name <- sections_data[[1]][i]
   section_prompt <- sections_data[[2]][i]
   section_items <- list()
@@ -131,96 +133,49 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
         feed <- tidyRSS::tidyfeed(feed_url)
         
         # Reddit vs. Regular RSS Logic
-        if ("entry_title" %in% names(feed)) {  # Check if it's a Reddit feed
-          # Reddit Feed Handling
-          for (k in 1:nrow(feed)) {
-            item <- feed[k,]
-            
-            item_title <- item$entry_title
-            item_description <- item$entry_content
-            item_link <- item$entry_link
-            item_date_published <- as.POSIXct(item$entry_published)
-            
-            item_guid <- digest(paste0(item_link), algo = "sha256")
-            
-            # Correctly apply the 48-hour filter only if the cache is empty
-            if (!(item_guid %in% cache_data$GUID)) {
-              if (cache_empty==TRUE) { # Cache is empty
-                if (item_date_published >= (Sys.time() - as.difftime(48, units = "hours"))) {
-                  # Process item (within last 48 hours)
-                  item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-                    paste(feed_prompt, item_title, item_description)
-                  } else {
-                    paste(item_title, item_description)
-                  }
-                  
-                  if (item_content != "") {
-                    section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
-                    cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
-                  }
-                }
-              } else { # Cache is not empty, process all items
-                item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-                  paste(feed_prompt, item_title, item_description)
-                } else {
-                  paste(item_title, item_description)
-                }
-                
-                if (item_content != "") {
-                  section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
-                  cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
-
-                }
-              }
-            }
-          }
-        } else if (nrow(feed) > 0) {  # Assume it's a regular RSS feed
-          # Regular RSS Feed Handling
-          for (k in 1:nrow(feed)) {
-            item <- feed[k,]
-            
-            item_title <- item$item_title
-            item_description <- item$item_description
-            item_link <- item$item_link
-            item_date_published <- as.POSIXct(item$item_pub_date)
-            
-            item_guid <- digest(paste0(item_link,'-',item_date_published), algo = "sha256")
-            
-            # Correctly apply the 48-hour filter only if the cache is empty
-            if (!(item_guid %in% cache_data$GUID)) {
-              if (cache_empty==TRUE) {  # Cache is empty
-                if (item_date_published >= (Sys.time() - as.difftime(48, units = "hours"))) {
-                  # Process item (within last 48 hours)
-                  item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-                      paste(feed_prompt, item_title, item_description)
-                        } else {
-                    paste(item_title, item_description)
-                  }
-                  
-                  if (item_content != "") {
-                    section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
-                    cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
-
-                  }
-                }
-              } else {  # Cache is not empty, process all items
-                item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-                  paste(feed_prompt, item_title, item_description)
-                } else {
-                  paste(item_title, item_description)
-                }
-                
-                if (item_content != "") {
-                  section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
-                  cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
-                }
-              }
-            }
-          }
-        } else {
-          message("Unknown feed type or empty feed: ", feed_url)
+        if ("entry_title" %in% names(feed)) {
+          # Check if it's a Reddit feed
+          feed <- feed |>
+            rename(
+              item_title = entry_title,
+              item_description = entry_content,
+              item_pub_date = entry_published
+            )
         }
         
+        for (k in 1:nrow(feed)) {
+          item <- feed[k, ]
+          
+          item_title <- item$item_title
+          item_description <- item$item_description
+          item_link <- item$item_link
+          
+          # Parse date correctly
+          if ("item_pub_date" %in% names(item)) {
+            item_date_published <- as.POSIXct(item$item_pub_date)
+          } else if ("entry_published" %in% names(item)) {
+            item_date_published <- as.POSIXct(item$entry_published)
+          } else {
+            item_date_published <- NA  # Handle cases where date is missing
+          }
+          
+          item_guid <- digest(paste0(item_link, "-", item_date_published), algo = "sha256")
+          
+          # Check if the item is new or within the last 48 hours if cache is empty
+          is_new_item <- !(item_guid %in% cache_data$GUID)
+          is_within_48_hours <- cache_empty && (difftime(current_time_utc, item_date_published, units = "hours") <= 48)
+          
+          if (is_new_item || is_within_48_hours) {
+            # Process item
+            item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
+              paste(feed_prompt, item_title, item_description)
+            } else {
+              paste(item_title, item_description)
+            }
+            section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
+            cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
+          }
+        }
       }, error = function(e) {
         message(paste("Error with feed:", feed_url, "Error:", e$message))
       })
@@ -272,7 +227,7 @@ for (i in 1:nrow(sections_data)) {  # Process in order from sections_data
       newsletter_content[[section_name]] <- paste0("## ", section_name, "\n", "Error summarizing this section.\n\n")
     })
   }
-}
+
 
 
 # --- Combine sections, generate Headlines, and re-assemble in order ---
