@@ -160,6 +160,8 @@ for (i in 1:nrow(sections_data)) {
               "item_description"
             names(feed)[names(feed) == "entry_published"] <-
               "item_pub_date"
+            names(feed)[names(feed) == "entry_link"] <-
+              "item_link"
           }
 
           for (k in 1:nrow(feed)) {
