@@ -19,6 +19,27 @@ gemini_api_url <- "https://generativelanguage.googleapis.com/v1beta/models/gemin
 
 # --- Date and Time Formatting ---
 
+# Get the current time in # Install required packages if not already installed
+if(!require(httr2)){install.packages("httr2")}
+if(!require(digest)){install.packages("digest")}
+if(!require(lubridate)){install.packages("lubridate")}
+if(!require(tidyRSS)){install.packages("tidyRSS")}
+if(!require(googlesheets4)){install.packages("googlesheets4")}
+if(!require(emayili)){install.packages("emayili")}
+if(!require(markdown)){install.packages("markdown")}
+
+# --- Configuration ---
+
+# Load secrets from environment variables
+gemini_api_key <- Sys.getenv("GEMINI_API_KEY")
+email_from <- Sys.getenv("EMAIL_FROM")
+email_to <- Sys.getenv("EMAIL_TO")
+email_password <- Sys.getenv("EMAIL_PASSWORD")
+rss_sheet_url <- Sys.getenv("RSS_SHEET_URL")
+gemini_api_url <- "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
+
+# --- Date and Time Formatting ---
+
 # Get the current time in UTC
 current_time_utc <- Sys.time()
 
@@ -60,7 +81,35 @@ rss_sheet_name_style <- Sys.getenv("RSS_SHEET_NAME_STYLE", "Style")
 gs4_deauth()
 
 sections_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_sections)
+
+print("Sections Data:")
+print(sections_data)
+print(paste("Number of rows in sections_data:", nrow(sections_data)))
+print(paste("Number of columns in sections_data:", ncol(sections_data)))
+print("Column Names:")
+print(colnames(sections_data))
+
+# Check each column for content
+for (col in colnames(sections_data)) {
+  print(paste("Content of column", col, ":"))
+  print(sections_data[[col]])
+}
+
 feeds_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_feeds)
+
+print("Feeds Data:")
+print(feeds_data)
+print(paste("Number of rows in feeds_data:", nrow(feeds_data)))
+print(paste("Number of columns in feeds_data:", ncol(feeds_data)))
+print("Column Names:")
+print(colnames(feeds_data))
+
+# Check each column for content
+for (col in colnames(feeds_data)) {
+  print(paste("Content of column", col, ":"))
+  print(feeds_data[[col]])
+}
+
 style_data <- get_google_sheet_data(rss_sheet_url, sheet_name = rss_sheet_name_style)
 
 print("Style Data:")
@@ -127,117 +176,120 @@ cache_empty <- ifelse(nrow(cache_data)==0, TRUE,FALSE)
 
 # --- RSS Feed Processing and Caching ---
 for (i in 1:nrow(sections_data)) {
-  # Process in order from sections_data
-  section_name <- sections_data[[1]][i]
-  section_prompt <- sections_data[[2]][i]
-  section_items <- list()
+  tryCatch({
+    # Process in order from sections_data
+    section_name <- sections_data[[1]][i]
+    section_prompt <- sections_data[[2]][i]
+    section_items <- list()
 
-  # Get feeds for this section
-  section_feeds <- feeds_data[feeds_data[[1]] == section_name, ]
+    # Get feeds for this section
+    section_feeds <- feeds_data[feeds_data[[1]] == section_name, ]
 
-  if (nrow(section_feeds) > 0) {
-    for (j in 1:nrow(section_feeds)) {
-      feed_url <- section_feeds[[2]][j]
-      feed_prompt <- section_feeds[[3]][j]
+    if (nrow(section_feeds) > 0) {
+      for (j in 1:nrow(section_feeds)) {
+        feed_url <- section_feeds[[2]][j]
+        feed_prompt <- section_feeds[[3]][j]
 
-      # Fetch and parse RSS feed (with error handling)
-      tryCatch({
-        feed <- tidyRSS::tidyfeed(feed_url)
+        # Fetch and parse RSS feed (with error handling)
+        tryCatch({
+          feed <- tidyRSS::tidyfeed(feed_url)
 
-        # Reddit vs. Regular RSS Logic
-        if ("entry_title" %in% names(feed)) {
-          # Check if it's a Reddit feed
-          # Rename columns directly without dplyr
-          names(feed)[names(feed) == "entry_title"] <- "item_title"
-          names(feed)[names(feed) == "entry_content"] <- "item_description"
-          names(feed)[names(feed) == "entry_published"] <- "item_pub_date"
-        }
-
-        for (k in 1:nrow(feed)) {
-          item <- feed[k, ]
-
-          item_title <- item$item_title
-          item_description <- item$item_description
-          item_link <- item$item_link
-
-          # Parse date correctly
-          if ("item_pub_date" %in% names(item)) {
-            item_date_published <- as.POSIXct(item$item_pub_date)
-          } else if ("entry_published" %in% names(item)) {
-            item_date_published <- as.POSIXct(item$entry_published)
-          } else {
-            item_date_published <- NA  # Handle cases where date is missing
+          # Reddit vs. Regular RSS Logic
+          if ("entry_title" %in% names(feed)) {
+            # Check if it's a Reddit feed
+            # Rename columns directly without dplyr
+            names(feed)[names(feed) == "entry_title"] <- "item_title"
+            names(feed)[names(feed) == "entry_content"] <- "item_description"
+            names(feed)[names(feed) == "entry_published"] <- "item_pub_date"
           }
 
-          item_guid <- digest(paste0(item_link, "-", item_date_published), algo = "sha256")
+          for (k in 1:nrow(feed)) {
+            item <- feed[k, ]
 
-          # Check if the item is new or within the last 48 hours if cache is empty
-          is_new_item <- !(item_guid %in% cache_data$GUID)
-          is_within_48_hours <- cache_empty && (difftime(current_time_utc, item_date_published, units = "hours") <= 48)
+            item_title <- item$item_title
+            item_description <- item$item_description
+            item_link <- item$item_link
 
-          if (is_new_item || is_within_48_hours) {
-            # Process item
-            item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
-              paste(feed_prompt, item_title, item_description)
+            # Parse date correctly
+            if ("item_pub_date" %in% names(item)) {
+              item_date_published <- as.POSIXct(item$item_pub_date)
+            } else if ("entry_published" %in% names(item)) {
+              item_date_published <- as.POSIXct(item$entry_published)
             } else {
-              paste(item_title, item_description)
+              item_date_published <- NA  # Handle cases where date is missing
             }
-            section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
-            cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
+
+            item_guid <- digest(paste0(item_link, "-", item_date_published), algo = "sha256")
+
+            # Check if the item is new or within the last 48 hours if cache is empty
+            is_new_item <- !(item_guid %in% cache_data$GUID)
+            is_within_48_hours <- cache_empty && (difftime(current_time_utc, item_date_published, units = "hours") <= 48)
+
+            if (is_new_item || is_within_48_hours) {
+              # Process item
+              item_content <- if (!is.na(feed_prompt) && feed_prompt != "") {
+                paste(feed_prompt, item_title, item_description)
+              } else {
+                paste(item_title, item_description)
+              }
+              section_items <- c(section_items, list(list(title = item_title, content = item_content, link = item_link)))
+              cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
+            }
           }
-        }
+        }, error = function(e) {
+          message(paste("Error with feed:", feed_url, "Error:", e$message))
+        })
+      }
+    }
+
+    # --- Gemini 1.5 Flash API Interaction ---
+    if (length(section_items) > 0) {
+      # Combine items for each section, including links:
+      combined_items_text <- paste(sapply(section_items, function(item) paste0(item$title, ": ", item$content, " (", item$link, ")")), collapse = "\n\n")
+
+      # Create a section-specific prompt:
+      section_specific_prompt <- paste0(
+        system_prompt,
+        "Section Name: ", section_name, "\n",
+        "Section Instructions: ", section_prompt, "\n\n",
+        "Here is the information for this section:\n",
+        combined_items_text
+      )
+
+      tryCatch({
+        gemini_request <- request(gemini_api_url) %>%
+          req_headers("Content-Type" = "application/json") %>%
+          req_body_json(list(
+            contents = list(
+              parts = list(list(text = section_specific_prompt))
+            ),
+            # Add safety settings and generation config (optional but recommended)
+            safety_settings = list(
+              # ... (add your safety settings)
+            ),
+            generation_config = list(
+              temperature = 1  # Adjust as needed
+            )
+          )) %>%
+          req_url_query("key" = gemini_api_key)
+
+        gemini_response <- gemini_request %>%
+          req_perform() %>%
+          resp_body_json()
+
+        summarized_text <- gemini_response$candidates[[1]]$content$parts[[1]]$text
+        newsletter_content[[section_name]] <- paste0("## ", section_name, "\n", summarized_text, "\n\n")
+        message(paste0("Processed section: ", section_name))
+
       }, error = function(e) {
-        message(paste("Error with feed:", feed_url, "Error:", e$message))
+        message(paste("Gemini API Error, Section:", section_name,  "Error:", e$message))
+        newsletter_content[[section_name]] <- paste0("## ", section_name, "\n", "Error summarizing this section.\n\n")
       })
     }
-  }
-
-  # --- Gemini 1.5 Flash API Interaction ---
-  if (length(section_items) > 0) {
-    # Combine items for each section, including links:
-    combined_items_text <- paste(sapply(section_items, function(item) paste0(item$title, ": ", item$content, " (", item$link, ")")), collapse = "\n\n")
-
-    # Create a section-specific prompt:
-    section_specific_prompt <- paste0(
-      system_prompt,
-      "Section Name: ", section_name, "\n",
-      "Section Instructions: ", section_prompt, "\n\n",
-      "Here is the information for this section:\n",
-      combined_items_text
-    )
-
-    tryCatch({
-      gemini_request <- request(gemini_api_url) %>%
-        req_headers("Content-Type" = "application/json") %>%
-        req_body_json(list(
-          contents = list(
-            parts = list(list(text = section_specific_prompt))
-          ),
-          # Add safety settings and generation config (optional but recommended)
-          safety_settings = list(
-            # ... (add your safety settings)
-          ),
-          generation_config = list(
-            temperature = 1  # Adjust as needed
-          )
-        )) %>%
-        req_url_query("key" = gemini_api_key)
-
-      gemini_response <- gemini_request %>%
-        req_perform() %>%
-        resp_body_json()
-
-      summarized_text <- gemini_response$candidates[[1]]$content$parts[[1]]$text
-      newsletter_content[[section_name]] <- paste0("## ", section_name, "\n", summarized_text, "\n\n")
-      message(paste0("Processed section: ", section_name))
-
-    }, error = function(e) {
-      message(paste("Gemini API Error, Section:", section_name,  "Error:", e$message))
-      newsletter_content[[section_name]] <- paste0("## ", section_name, "\n", "Error summarizing this section.\n\n")
-    })
-  }
-
-
+  }, error = function(e) {
+    message(paste("Error in section processing:", section_name, "Error:", e$message))
+  })
+}
 
 # --- Combine sections, generate Headlines, and re-assemble in order ---
 all_sections_content <- paste(unlist(newsletter_content), collapse = "\n\n")
