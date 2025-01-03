@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history to allow git add/commit
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
@@ -24,22 +26,14 @@ jobs:
       - name: Install R dependencies
         run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl", "tidyverse"))'
 
-      - name: Download GUIDs Artifact (if exists)
-        id: download-guids
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: guids-artifact
-          path: .
-
-      - name: Check if guids.csv exists after download
+      - name: Check if guids.csv exists in repository
         shell: bash
         run: |
           if [[ -f "guids.csv" ]]; then
-            echo "GUIDs file found from previous artifact."
+            echo "GUIDs file found in repository."
             echo "guids_found=true" >> $GITHUB_ENV
-          else
-            echo "No GUIDs file found from previous artifact."
+          else:
+            echo "No GUIDs file found in repository."
             echo "guids_found=false" >> $GITHUB_ENV
           fi
 
@@ -70,12 +64,13 @@ jobs:
             echo "guids.csv does not exist"
           }
 
-      - name: Upload GUIDs as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: guids-artifact
-          path: guids.csv
-          if-no-files-found: ignore
+      - name: Commit and push changes (if any)
+        run: |
+          git config --global user.name 'GitHub Actions Bot' # Set the name of the committer
+          git config --global user.email 'actions@github.com' # Set the email of the committer
+          git add guids.csv
+          git commit -m "Update guids.csv" || echo "No changes to commit"
+          git push
 
       - name: Write Newsletter to workflow summary
         shell: bash
