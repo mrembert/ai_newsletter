@@ -162,12 +162,7 @@ for (i in 1:nrow(sections_data)) {
           names(feed)[names(feed) == "entry_content"] <- "item_description"
           names(feed)[names(feed) == "entry_published"] <- "item_pub_date"
           names(feed)[names(feed) == "entry_link"] <- "item_link"
-        } else {
-          names(feed)[names(feed) == "item_title"] <- "item_title"
-          names(feed)[names(feed) == "item_desc"] <- "item_description"
-          names(feed)[names(feed) == "item_pub_date"] <- "item_pub_date"
-          names(feed)[names(feed) == "item_link"] <- "item_link"
-        }
+        } 
         
         for (k in 1:nrow(feed)) {
           item <- feed[k, ]
@@ -175,8 +170,8 @@ for (i in 1:nrow(sections_data)) {
           item_title <- item$item_title
           item_description <- item$item_description
           item_link <- item$item_link
-          item_date_published <- as.POSIXct(item$item_pub_date)          
-                 
+          item_date_published <- as.POSIXct(item$item_pub_date)
+          
           item_guid <- digest(paste0(item_link, "-", item_date_published), algo = "sha256")
           
           # Check if the item is new or within the last 48 hours if cache is empty
@@ -186,22 +181,33 @@ for (i in 1:nrow(sections_data)) {
             # Process item
             item_content <- paste(item_title, item_description) # Combine title and description
             
-            if (is.null(feed_items[[feed_prompt]])) {
-              feed_items[[feed_prompt]] <- list() # Initialize an empty list for this feed if it doesn't exist
+            # Use feed_url as fallback if feed_prompt is invalid
+            if (!is.na(feed_prompt) && feed_prompt != "") {
+              grouping_key <- feed_prompt
+            } else {
+              grouping_key <- feed_url
+             }
+            
+            if (is.null(feed_items[[grouping_key]])) {
+              feed_items[[grouping_key]] <- list()
             }
             
-            feed_items[[feed_prompt]] <- c(feed_items[[feed_prompt]], list(list(title = item_title, content = item_content, link = item_link)))
+            feed_items[[grouping_key]] <- c(feed_items[[grouping_key]], list(list(title = item_title, content = item_content, link = item_link)))
             cache_data <- rbind(cache_data, data.frame(GUID = item_guid))
           }
         }
         
         # --- Structure the Section Content for this feed ---
-        
-        if (length(feed_items[[feed_prompt]]) > 0) { # Check if this specific feed has items
+        if (length(feed_items[[grouping_key]]) > 0) { # Check if this specific feed has items
           section_content_parts <- list() # Moved inside the inner loop
           section_content_parts <- c(section_content_parts, paste("Section prompt:", section_prompt))
-          section_content_parts <- c(section_content_parts, paste("Feed prompt:", feed_prompt))
-          for (item in feed_items[[feed_prompt]]) {
+          
+          # Conditionally add "Feed prompt:" only if it's a valid feed_prompt
+          if (!is.na(feed_prompt) && feed_prompt != "" && grouping_key != feed_url) {
+            section_content_parts <- c(section_content_parts, paste("Feed prompt:", grouping_key))
+          }
+          
+          for (item in feed_items[[grouping_key]]) {
             section_content_parts <- c(section_content_parts, paste0(item$title, ": ", item$content, " (", item$link, ")"))
           }
           combined_items_text <- paste(section_content_parts, collapse = "\n\n")
