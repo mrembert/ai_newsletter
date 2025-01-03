@@ -24,19 +24,24 @@ jobs:
       - name: Install R dependencies
         run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl", "tidyverse"))'
 
-      - name: Log Cache Key Before Restore
-        run: |
-          echo "Cache key before restore: ${{ runner.os }}-guids"
-
-      - name: Cache GUIDs (Restore)
-        id: cache-guids
-        if: always()
-        uses: actions/cache@v4
+      - name: Download GUIDs Artifact (if exists)
+        id: download-guids
+        continue-on-error: true
+        uses: actions/download-artifact@v3
         with:
-          path: guids.csv
-          key: ${{ runner.os }}-guids
-          restore-keys: |
-            ${{ runner.os }}-guids
+          name: guids-artifact
+          path: .
+
+      - name: Check if guids.csv exists after download
+        shell: bash
+        run: |
+          if [[ -f "guids.csv" ]]; then
+            echo "GUIDs file found from previous artifact."
+            echo "guids_found=true" >> $GITHUB_ENV
+          else
+            echo "No GUIDs file found from previous artifact."
+            echo "guids_found=false" >> $GITHUB_ENV
+          fi
 
       - name: Execute R Script
         env:
@@ -65,18 +70,14 @@ jobs:
             echo "guids.csv does not exist"
           }
 
-      - name: Log Cache Key Before Save
-        run: |
-          echo "Cache key before save: ${{ runner.os }}-guids"
-
-      - name: Save Cache (GUIDs)
-        if: always()
-        uses: actions/cache@v4
+      - name: Upload GUIDs as Artifact
+        uses: actions/upload-artifact@v3
         with:
+          name: guids-artifact
           path: guids.csv
-          key: ${{ runner.os }}-guids
+          if-no-files-found: ignore
 
       - name: Write Newsletter to workflow summary
         shell: bash
         run: |
-            cat newsletter.md >> $GITHUB_STEP_SUMMARY
+          cat newsletter.md >> $GITHUB_STEP_SUMMARY
