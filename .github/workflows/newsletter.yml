@@ -12,7 +12,6 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -25,14 +24,19 @@ jobs:
       - name: Install R dependencies
         run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl"))'
 
-      - name: Cache GUIDs
+      - name: Log Cache Key Before Restore
+        run: |
+          echo "Cache key before restore: ${{ runner.os }}-guids"
+
+      - name: Cache GUIDs (Restore)
         id: cache-guids
-        uses: actions/cache@v3
+        if: always()
+        uses: actions/cache@v4
         with:
           path: guids.csv
           key: ${{ runner.os }}-guids
           restore-keys: |
-            ${{ runner.os }}-guids-
+            ${{ runner.os }}-guids
 
       - name: Execute R Script
         env:
@@ -44,6 +48,33 @@ jobs:
           RSS_SHEET_NAME_SECTIONS: ${{ secrets.RSS_SHEET_NAME_SECTIONS || 'Sections' }}
           RSS_SHEET_NAME_FEEDS: ${{ secrets.RSS_SHEET_NAME_FEEDS || 'Feeds' }}
         run: Rscript ai_newsletter_script.R
+
+      - name: Check if guids.csv exists after R script
+        run: |
+          if (Test-Path -Path "guids.csv") {
+            echo "guids.csv exists after R script"
+          } else {
+            echo "guids.csv does NOT exist after R script"
+          }
+
+      - name: Show content of guids.csv after R script
+        run: |
+          if (Test-Path -Path "guids.csv") {
+            Get-Content "guids.csv"
+          } else {
+            echo "guids.csv does not exist"
+          }
+
+      - name: Log Cache Key Before Save
+        run: |
+          echo "Cache key before save: ${{ runner.os }}-guids"
+
+      - name: Save Cache (GUIDs)
+        if: success()
+        uses: actions/cache@v4
+        with:
+          path: guids.csv
+          key: ${{ runner.os }}-guids
 
       - name: Write Newsletter to workflow summary
         shell: bash
