@@ -22,7 +22,7 @@ jobs:
           use-public-rspm: true
 
       - name: Install R dependencies
-        run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl"))'
+        run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl", "tidyverse"))'
 
       - name: Log Cache Key Before Restore
         run: |
