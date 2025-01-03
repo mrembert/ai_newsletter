@@ -176,16 +176,8 @@ for (i in 1:nrow(sections_data)) {
           item_title <- item$item_title
           item_description <- item$item_description
           item_link <- item$item_link
-          
-          # Parse date correctly
-          if ("item_pub_date" %in% names(item)) {
-            item_date_published <- as.POSIXct(item$item_pub_date)
-          } else if ("entry_published" %in% names(item)) {
-            item_date_published <- as.POSIXct(item$entry_published)
-          } else {
-            item_date_published <- NA  # Handle cases where date is missing
-          }
-          
+          item_date_published <- as.POSIXct(item$item_pub_date)          
+                 
           item_guid <- digest(paste0(item_link, "-", item_date_published), algo = "sha256")
           
           # Check if the item is new or within the last 48 hours if cache is empty
