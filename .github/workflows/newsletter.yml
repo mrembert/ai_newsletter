@@ -15,8 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Fetch all history to allow git add/commit
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
@@ -26,14 +24,23 @@ jobs:
       - name: Install R dependencies
         run: Rscript -e 'install.packages(c("httr2", "digest", "lubridate", "tidyRSS", "googlesheets4", "emayili", "markdown", "curl", "tidyverse"))'
 
-      - name: Check if guids.csv exists in repository
+      - name: Cache guids.csv
+        id: cache-guids
+        uses: actions/cache@v3
+        with:
+          path: guids.csv
+          key: guids-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            guids-${{ runner.os }}
+
+      - name: Check if guids.csv exists in cache
         shell: bash
         run: |
-          if [[ -f "guids.csv" ]]; then
-            echo "GUIDs file found in repository."
+          if [[ steps.cache-guids.outputs.cache-hit == 'true' ]]; then
+            echo "GUIDs file found in cache."
             echo "guids_found=true" >> $GITHUB_ENV
           else:
-            echo "No GUIDs file found in repository."
+            echo "No GUIDs file found in cache."
             echo "guids_found=false" >> $GITHUB_ENV
           fi
 
@@ -60,17 +67,11 @@ jobs:
         run: |
           if (Test-Path -Path "guids.csv") {
             Get-Content "guids.csv"
-          } else {
+          } else:
             echo "guids.csv does not exist"
           }
 
-      - name: Commit and push changes (if any)
-        run: |
-          git config --global user.name 'GitHub Actions Bot' # Set the name of the committer
-          git config --global user.email 'actions@github.com' # Set the email of the committer
-          git add guids.csv
-          git commit -m "Update guids.csv" || echo "No changes to commit"
-          git push
+      # The cache will be updated automatically if guids.csv is modified
 
       - name: Write Newsletter to workflow summary
         shell: bash
