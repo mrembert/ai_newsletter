@@ -133,7 +133,6 @@ if (!("GUID" %in% names(cache_data))) {
 # Initialize newsletter content
 newsletter_content <- list()
 final_newsletter_content <- ""
-cache_empty <- ifelse(nrow(cache_data) == 0, TRUE, FALSE)
 
 # --- RSS Feed Processing and Caching ---
 for (i in 1:nrow(sections_data)) {
@@ -182,7 +181,6 @@ for (i in 1:nrow(sections_data)) {
           
           # Check if the item is new or within the last 48 hours if cache is empty
           is_new_item <- !(item_guid %in% cache_data$GUID)
-          is_within_48_hours <- cache_empty && (difftime(current_time_utc, item_date_published, units = "hours") <= 48)
           
           if (is_new_item) {
             # Process item
