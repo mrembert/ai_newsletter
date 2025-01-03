@@ -192,7 +192,7 @@ for (i in 1:nrow(sections_data)) {
           is_new_item <- !(item_guid %in% cache_data$GUID)
           is_within_48_hours <- cache_empty && (difftime(current_time_utc, item_date_published, units = "hours") <= 48)
           
-          if (is_new_item || is_within_48_hours) {
+          if (is_new_item) {
             # Process item
             item_content <- paste(item_title, item_description) # Combine title and description
             
