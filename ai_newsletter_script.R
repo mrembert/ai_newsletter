@@ -266,6 +266,7 @@ for (i in 1:nrow(sections_data)) {
   } else {
     message(paste("No feeds found for section:", section_name))
   }
+  Sys.sleep(5)
 }
 
 # --- Combine sections, generate Headlines, and re-assemble in order ---
