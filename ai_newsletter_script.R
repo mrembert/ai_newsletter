@@ -30,7 +30,7 @@ email_to <- Sys.getenv("EMAIL_TO")
 email_password <- Sys.getenv("EMAIL_PASSWORD")
 rss_sheet_url <- Sys.getenv("RSS_SHEET_URL")
 gemini_api_url <-
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 # --- Date and Time Formatting ---
 
